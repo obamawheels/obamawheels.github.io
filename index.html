@@ -1,22 +1,525 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pages Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        h1 {
-            color: #333;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BZ Flipper</title>
+  <!-- Load Chart.js with defer to prevent render blocking -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <style>
+    /* Root Variables */
+    :root {
+      --bg-color: black;
+      --text-color: white;
+      --primary-color: #00ffcc;
+      --secondary-color: #1a1a1a;
+    }
+
+    /* Global Styles */
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header, main {
+      width: 100%;
+    }
+
+    header h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin: 20px 0;
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .flex-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section {
+      background: var(--secondary-color);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 255, 204, 0.3);
+      margin-bottom: 20px;
+    }
+
+    .large {
+      flex: 2;
+    }
+
+    .small {
+      flex: 1;
+    }
+
+    /* Loader */
+    #loader {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .spinner {
+      border: 8px solid #222;
+      border-top: 8px solid var(--primary-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Search Section */
+    #search-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #555;
+      border-radius: 5px;
+      background-color: #222;
+      color: white;
+      font-size: 1.2rem;
+      outline: none;
+      transition: border 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      border: 2px solid var(--primary-color);
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      background-color: var(--primary-color);
+      color: black;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #008f7a;
+    }
+
+    #suggestions {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      background: black;
+      border: 1px solid var(--primary-color);
+      border-radius: 5px;
+      box-shadow: 0 4px 6px rgba(0, 255, 204, 0.2);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    #suggestions div {
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    #suggestions div:hover {
+      background: #333;
+    }
+
+    /* Graph Section */
+    canvas {
+      background: #1a1a1a;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 255, 204, 0.3);
+      width: 100%;
+      height: auto;
+    }
+
+    /* Top Margins and Variations Section */
+    .item-card {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      flex: 1 1 calc(48%);
+      box-shadow: 0 4px 6px rgba(0, 255, 204, 0.2);
+      transition: transform 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    .item-card:hover {
+      transform: scale(1.05);
+    }
+
+    .item-card p {
+      margin: 5px 0;
+    }
+
+    .item-card span {
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .flex-row {
+        flex-direction: column;
+      }
+
+      .item-card {
+        flex: 1 1 100%;
+      }
+
+      button, input[type="text"] {
+        padding: 10px;
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>GitHub Pages is Working!</h1>
-    <p>If you can see this, your GitHub Pages site is live.</p>
+  <header>
+    <h1>BZ Flipper</h1>
+  </header>
+  <main class="container">
+    <!-- Search Section -->
+    <section id="search-section" class="section">
+      <form id="search-form" class="flex-column">
+        <!-- You could add a label here for accessibility if desired -->
+        <input type="text" id="item-search" placeholder="Search for an item..." autocomplete="off">
+        <div id="suggestions"></div>
+        <button type="submit">Search</button>
+      </form>
+      <div id="loader">
+        <div class="spinner"></div>
+      </div>
+      <div id="result"></div>
+    </section>
+
+    <!-- Main Content -->
+    <section id="main-content">
+      <div class="flex-row">
+        <!-- Graph Section -->
+        <article id="graph-section" class="section large">
+          <h2>Price Graph</h2>
+          <canvas id="priceGraph"></canvas>
+          <div class="flex-row" style="justify-content: center; margin-top: 10px;">
+            <button class="time-range-btn" data-range="1h">1 Hour</button>
+            <button class="time-range-btn" data-range="24h">1 Day</button>
+            <button class="time-range-btn" data-range="1w">1 Week</button>
+            <button class="time-range-btn" data-range="1y">1 Year</button>
+            <button class="time-range-btn" data-range="all">All Time</button>
+          </div>
+        </article>
+
+        <!-- Top Margins Section -->
+        <aside id="top-margins-section" class="section small">
+          <h2>Top 10 Items with Highest Margins</h2>
+          <div>
+            <label for="sort-by">Sort by:</label>
+            <select id="sort-by">
+              <option value="margin" selected>Margin</option>
+              <option value="buy_price">Buy Price</option>
+              <option value="sell_price">Sell Price</option>
+              <option value="demand">Demand</option>
+              <option value="supply">Supply</option>
+            </select>
+
+            <label for="order">Order:</label>
+            <select id="order">
+              <option value="desc" selected>Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+            <button id="refresh-top-margins">Refresh</button>
+          </div>
+          <div id="top-margins"></div>
+        </aside>
+      </div>
+
+      <!-- Profitability Section -->
+      <section id="profitability-section" class="section">
+        <h2>Profitability (Coins Per Hour)</h2>
+        <div>
+          <label for="coins">Coins:</label>
+          <input type="number" id="coins" value="0">
+          <label for="difficulty">Difficulty:</label>
+          <input type="number" id="difficulty" value="1" step="0.1">
+          <button id="calculate-profit">Calculate Profit</button>
+        </div>
+        <div id="profitability-result"></div>
+      </section>
+
+      <!-- Top Variations Section -->
+      <section id="top-variations-section" class="section">
+        <h2>Top 10 Items with Highest Price Variations</h2>
+        <div>
+          <label for="variation-time-range">Time Range:</label>
+          <select id="variation-time-range">
+            <option value="3600">1 Hour</option>
+            <option value="86400">1 Day</option>
+            <option value="604800">1 Week</option>
+          </select>
+          <button id="refresh-top-variations">Refresh</button>
+        </div>
+        <div id="top-variations"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Combined JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('item-search');
+      const suggestionsDiv = document.getElementById('suggestions');
+      const resultDiv = document.getElementById('result');
+      const loaderDiv = document.getElementById('loader');
+      const priceGraphCtx = document.getElementById('priceGraph').getContext('2d');
+      const topMarginsDiv = document.getElementById('top-margins');
+      const profitabilityResult = document.getElementById('profitability-result');
+      const calculateProfitButton = document.getElementById('calculate-profit');
+      const topVariationsDiv = document.getElementById('top-variations');
+      const refreshTopVariationsButton = document.getElementById('refresh-top-variations');
+      const variationTimeRange = document.getElementById('variation-time-range');
+      let chart;
+      let currentItem = '';
+
+      // Show or hide the loader
+      function showLoader(show) {
+        loaderDiv.style.display = show ? 'block' : 'none';
+      }
+
+      // Fetch autocomplete suggestions
+      async function fetchSuggestions(query) {
+        try {
+          const response = await fetch(`/autocomplete?query=${encodeURIComponent(query)}`);
+          if (!response.ok) throw new Error("Failed to fetch suggestions.");
+          const items = await response.json();
+          suggestionsDiv.innerHTML = '';
+          items.forEach(item => {
+            const suggestion = document.createElement('div');
+            suggestion.textContent = item;
+            suggestion.addEventListener('click', () => {
+              searchInput.value = item;
+              suggestionsDiv.innerHTML = '';
+            });
+            suggestionsDiv.appendChild(suggestion);
+          });
+        } catch (error) {
+          console.error("Autocomplete error:", error);
+        }
+      }
+
+      // Listen for user input to trigger autocomplete
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+          suggestionsDiv.innerHTML = '';
+          return;
+        }
+        fetchSuggestions(query);
+      });
+
+      // Fetch and plot graph data for the selected item
+      async function fetchGraphData(itemName, timeRange = 'all') {
+        try {
+          showLoader(true);
+          const response = await fetch(`/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`);
+          if (!response.ok) throw new Error("Failed to fetch graph data.");
+          const history = await response.json();
+          const labels = history.map(h => new Date(h.timestamp * 1000).toLocaleTimeString());
+          const buyPrices = history.map(h => h.buy_price);
+          const sellPrices = history.map(h => h.sell_price);
+
+          if (chart) chart.destroy();
+          chart = new Chart(priceGraphCtx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                { label: 'Buy Price', data: buyPrices, borderColor: '#00ccff', fill: false, tension: 0.4 },
+                { label: 'Sell Price', data: sellPrices, borderColor: '#ff5733', fill: false, tension: 0.4 }
+              ]
+            },
+            options: {
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    label: context => `${context.dataset.label}: ${context.raw.toFixed(2)}`
+                  }
+                },
+                legend: { labels: { color: '#fff' } }
+              },
+              scales: {
+                x: { ticks: { color: '#fff' }, grid: { color: '#555' } },
+                y: { ticks: { color: '#fff' }, grid: { color: '#555' } }
+              }
+            }
+          });
+        } catch (error) {
+          console.error("Graph error:", error);
+          resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      // Fetch top margins data
+      async function fetchTopMargins() {
+        const sortBy = document.getElementById('sort-by').value;
+        const order = document.getElementById('order').value;
+        try {
+          showLoader(true);
+          const response = await fetch(`/top-margins?sort_by=${sortBy}&order=${order}`);
+          if (!response.ok) throw new Error("Failed to fetch top margins.");
+          const items = await response.json();
+          topMarginsDiv.innerHTML = items.map(item => 
+            `<div class="item-card">
+              <p><span>Item:</span> ${item.item_id}</p>
+              <p><span>Margin:</span> ${item.margin}</p>
+              <p><span>Buy Price:</span> ${item.buy_price}</p>
+              <p><span>Sell Price:</span> ${item.sell_price}</p>
+              <p><span>Demand:</span> ${item.demand || 'N/A'}</p>
+              <p><span>Supply:</span> ${item.supply || 'N/A'}</p>
+            </div>`
+          ).join('');
+        } catch (error) {
+          console.error("Top margins error:", error);
+          topMarginsDiv.innerHTML = '<p>Error loading top items. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      // Fetch item details on search form submission
+      document.getElementById('search-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const itemName = searchInput.value.trim();
+        if (!itemName) return;
+        currentItem = itemName;
+
+        try {
+          showLoader(true);
+          const response = await fetch(`/search?item=${encodeURIComponent(itemName)}`);
+          if (!response.ok) throw new Error("Failed to fetch item details.");
+          const data = await response.json();
+          resultDiv.innerHTML = `
+            <p><strong>Item:</strong> ${data.item_id}</p>
+            <p><strong>Buy Price:</strong> ${data.buy_price || 'N/A'}</p>
+            <p><strong>Sell Price:</strong> ${data.sell_price || 'N/A'}</p>
+            <p><strong>Margin:</strong> ${data.margin || 'N/A'}</p>
+            <p><strong>Demand:</strong> ${data.demand || 'N/A'}</p>
+            <p><strong>Supply:</strong> ${data.supply || 'N/A'}</p>
+          `;
+          fetchGraphData(itemName);
+        } catch (error) {
+          console.error("Item details error:", error);
+          resultDiv.innerHTML = '<p>Error loading item details. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      });
+
+      // Handle profitability calculation
+      calculateProfitButton.addEventListener('click', async () => {
+        const coins = parseFloat(document.getElementById('coins').value);
+        const difficulty = parseFloat(document.getElementById('difficulty').value);
+        try {
+          showLoader(true);
+          const response = await fetch(`/profitability?coins=${coins}&difficulty=${difficulty}`);
+          if (!response.ok) throw new Error("Failed to fetch profitability.");
+          const results = await response.json();
+          profitabilityResult.innerHTML = results.map(result => 
+            `<p><strong>Item:</strong> ${result.item_id}</p>
+             <p><strong>Profit per Minute:</strong> ${result.profit_per_minute.toFixed(2)}</p>
+             <p><strong>Profit per Hour:</strong> ${result.profit_per_hour.toFixed(2)}</p>`
+          ).join('');
+        } catch (error) {
+          console.error("Profitability error:", error);
+          profitabilityResult.innerHTML = '<p>Error calculating profitability. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      });
+
+      // Time range button event listeners for graph updates
+      document.querySelectorAll('.time-range-btn').forEach(button => {
+        button.addEventListener('click', function () {
+          const timeRange = this.getAttribute('data-range');
+          if (currentItem) {
+            fetchGraphData(currentItem, timeRange);
+          }
+        });
+      });
+
+      // Refresh top margins and schedule periodic refresh
+      document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
+      setInterval(fetchTopMargins, 60000);
+      fetchTopMargins();
+
+      // Fetch top price variations
+      async function fetchTopVariations() {
+        const timeRange = variationTimeRange.value;
+        try {
+          showLoader(true);
+          const response = await fetch(`/top-variations?time_range=${timeRange}`);
+          if (!response.ok) throw new Error("Failed to fetch top variations.");
+          const items = await response.json();
+          topVariationsDiv.innerHTML = items.map(item => 
+            `<div class="item-card">
+              <p><span>Item:</span> ${item.item_id}</p>
+              <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
+              <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
+              <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
+              <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
+            </div>`
+          ).join('');
+        } catch (error) {
+          console.error("Top variations error:", error);
+          topVariationsDiv.innerHTML = '<p>Error loading top variations. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      refreshTopVariationsButton.addEventListener('click', fetchTopVariations);
+      fetchTopVariations();
+    });
+  </script>
 </body>
 </html>
