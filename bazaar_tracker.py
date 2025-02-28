@@ -82,6 +82,9 @@ class BazaarTracker:
         """
         Notify significant changes in buy or sell prices.
         """
+        if buy_price is None or sell_price is None:
+            self.logger.warning(f"Missing price data for {item_id}: buy_price={buy_price}, sell_price={sell_price}")
+
         if self.history[item_id]:
             last_entry = self.history[item_id][-1]
             if abs(last_entry["buy_price"] - buy_price) > 5:  # Example threshold
