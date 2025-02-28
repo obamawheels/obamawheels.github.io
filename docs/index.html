@@ -6,11 +6,19 @@
   <title>BZTracker</title>
   <!-- Load Chart.js (as in your original code) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-
   <style>
     /***********************************************
      *               THEME VARIABLES
      ***********************************************/
+    /*
+      We’ll define two sets of CSS variables:
+      1) Dark Theme (“Crying Obsidian”)
+      2) Light Theme (“Ice”)
+      The <body> will get a class of either "dark-theme" or "light-theme"
+      to pick which set is active. By default, we start with .dark-theme.
+    */
+
+    /* === Base Variables (fallbacks) === */
     :root {
       --transition-speed: 0.3s;
       --font-family: "Roboto", sans-serif;
@@ -18,26 +26,26 @@
 
     /* === Dark Theme (Crying Obsidian) === */
     body.dark-theme {
-      --bg-color: #0b0c10;          /* near-black background */
-      --sidebar-bg: #151528;        /* darker panel for the sidebar */
-      --accent-color: #8a2be2;      /* purple accent */
-      --text-color: #e6e6fa;        /* light-lavender text */
-      --card-bg: #1d1d2b;          /* dark card background */
-      --particle-color: rgba(138,43,226, 0.5); /* purple swirl particles */
+      --bg-color: #0b0c10;         /* near-black background */
+      --sidebar-bg: #151528;       /* darker panel for the sidebar */
+      --accent-color: #8a2be2;     /* purple accent (blueviolet) */
+      --text-color: #e6e6fa;       /* light-lavender text */
+      --card-bg: #1d1d2b;         /* dark card background */
+      --particle-color: rgba(138,43,226, 0.5); /* purple particles */
     }
 
     /* === Light Theme (Ice) === */
     body.light-theme {
-      --bg-color: #f6fafd;          
-      --sidebar-bg: #eaf2f8;        
-      --accent-color: #3eb4f0;      
-      --text-color: #1a1a1a;        
-      --card-bg: #ffffff;           
-      --particle-color: rgba(62,180,240, 0.5);  /* blue swirl particles */
+      --bg-color: #f6fafd;        /* near-white with a bluish tint */
+      --sidebar-bg: #eaf2f8;      /* slightly darker for sidebar */
+      --accent-color: #3eb4f0;    /* light-blue accent */
+      --text-color: #1a1a1a;      /* near-black text */
+      --card-bg: #ffffff;         /* white card background */
+      --particle-color: rgba(62,180,240, 0.5); /* light-blue particles */
     }
 
     /***********************************************
-     *  GLOBAL / BASE STYLES
+     *            GLOBAL / BASE STYLES
      ***********************************************/
     * {
       margin: 0;
@@ -54,43 +62,28 @@
       margin: 0;
       transition: background-color var(--transition-speed),
                   color var(--transition-speed);
-      overflow-x: hidden; 
-      position: relative;
+      overflow-x: hidden; /* prevent sideways scroll from particle container */
+      position: relative; /* anchor for the particle container */
     }
 
     /***********************************************
-     * BACKGROUND CRACK / PORTAL
-     ***********************************************/
-    #portal-crack {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      width: 800px;    /* adjust to taste */
-      height: 600px;   /* adjust to taste */
-      transform: translate(-50%, -50%);
-      background: 
-        radial-gradient(circle, rgba(138,43,226,0.5) 0%, transparent 70%), 
-        url("assets/crack.png") no-repeat center;
-      background-size: cover;
-      pointer-events: none; 
-      z-index: 1;  /* behind main content but above particles if you prefer */
-      transition: box-shadow 0.1s ease; 
-    }
-
-    /***********************************************
-     * PARTICLE CONTAINER (Canvas)
+     *        PARTICLE CONTAINER & ANIMATION
      ***********************************************/
     #particle-container {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      z-index: 0; 
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
+      pointer-events: none; /* so clicks pass through */
+      z-index: 0;           /* behind main content */
       overflow: hidden;
     }
 
+    /* We no longer use .particle divs; a <canvas> will be placed here instead. */
+
     /***********************************************
-     * SIDEBAR & MENU / SOUND TOGGLES
+     *           SIDEBAR & MENU / SOUND TOGGLES
      ***********************************************/
     #menuToggle, #soundToggle {
       position: fixed;
@@ -102,7 +95,7 @@
       font-size: 18px;
       border-radius: 4px;
       cursor: pointer;
-      z-index: 1001; 
+      z-index: 1001; /* above everything but below sidebar */
       transition: background var(--transition-speed), color var(--transition-speed);
     }
     #menuToggle:hover, #soundToggle:hover {
@@ -124,16 +117,16 @@
       height: 100%;
       background: var(--sidebar-bg);
       padding: 60px 20px;
-      transform: translateX(-260px); 
+      transform: translateX(-260px); /* hidden by default */
       transition: transform var(--transition-speed) ease;
-      z-index: 1002; 
+      z-index: 1002; /* above toggles */
       box-shadow: 5px 0 10px rgba(0, 0, 0, 0.4);
     }
     #sidebar.open {
       transform: translateX(0);
     }
     #sidebar h1 {
-      margin: 0 0 30px;
+      margin: 0 0 30px 0;
       color: var(--accent-color);
       text-align: center;
     }
@@ -155,10 +148,11 @@
       text-decoration: none;
     }
     #sidebar a:hover {
-      background: rgba(138, 43, 226, 0.2);
+      background: rgba(138, 43, 226, 0.2); /* tinted highlight (updated by theme) */
       text-shadow: 0 0 5px var(--accent-color);
     }
 
+    /* Overlay behind sidebar */
     #overlay {
       position: fixed;
       top: 0; left: 0;
@@ -173,24 +167,17 @@
     }
 
     /***********************************************
-     * MAIN CONTENT & SECTIONS
+     *            MAIN CONTENT & SECTIONS
      ***********************************************/
     #mainContent {
       max-width: 1200px;
       margin: 0 auto;
       padding: 70px 20px 40px;
       position: relative;
-      z-index: 10; 
+      z-index: 10; /* above the particles */
     }
-
-    /* For the light theme, each section gets an ice texture behind it. */
-    body.light-theme section {
-      background: 
-        url("assets/ice_texture.png") no-repeat center/cover, 
-        var(--card-bg);
-    }
-
     section {
+      background: var(--card-bg);
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
       margin-bottom: 50px;
@@ -204,7 +191,7 @@
     }
 
     /***********************************************
-     * LOADER (SPINNER)
+     *             LOADER (SPINNER)
      ***********************************************/
     #loader {
       display: none;
@@ -225,7 +212,7 @@
     }
 
     /***********************************************
-     * SEARCH SECTION
+     *         SEARCH SECTION
      ***********************************************/
     #search-form {
       display: flex;
@@ -266,7 +253,7 @@
     }
 
     /***********************************************
-     * GRAPH SECTION
+     *         GRAPH SECTION
      ***********************************************/
     .time-range-btn {
       margin: 0 5px;
@@ -292,7 +279,7 @@
     }
 
     /***********************************************
-     * TOP MARGINS & ITEMS
+     *         TOP MARGINS & ITEMS
      ***********************************************/
     #top-margins-section select,
     #top-margins-section button {
@@ -322,7 +309,7 @@
     }
 
     /***********************************************
-     * PROFITABILITY SECTION
+     *         PROFITABILITY SECTION
      ***********************************************/
     #profitability-section input {
       width: 80px;
@@ -335,7 +322,7 @@
     }
 
     /***********************************************
-     * TOP VARIATIONS SECTION
+     *         TOP VARIATIONS SECTION
      ***********************************************/
     #top-variations-section select,
     #top-variations-section button {
@@ -346,7 +333,7 @@
     }
 
     /***********************************************
-     * FLEX LAYOUTS
+     *         FLEX LAYOUTS
      ***********************************************/
     .flex-row {
       display: flex;
@@ -358,7 +345,7 @@
     .small { flex: 1; }
 
     /***********************************************
-     * RESPONSIVE
+     *         RESPONSIVE ADJUSTMENTS
      ***********************************************/
     @media (max-width: 768px) {
       .flex-row { flex-direction: column; }
@@ -367,7 +354,7 @@
     }
 
     /***********************************************
-     * SETTINGS SECTION (THEME TOGGLE)
+     *        SETTINGS SECTION (THEME TOGGLE)
      ***********************************************/
     #settings-section {
       display: flex;
@@ -397,17 +384,14 @@
 </head>
 
 <body class="dark-theme">
-  <!-- Particle Container (Canvas) -->
+  <!-- Particle Container (Canvas goes inside here) -->
   <div id="particle-container"></div>
 
-  <!-- The “portal crack” behind everything. Big cracked shape with purple glow. -->
-  <div id="portal-crack"></div>
-
-  <!-- SIDEBAR TOGGLE & SOUND TOGGLE -->
+  <!-- ===== SIDEBAR TOGGLE & SOUND TOGGLE ===== -->
   <button id="menuToggle">☰</button>
   <button id="soundToggle">🔇</button>
 
-  <!-- SIDEBAR -->
+  <!-- ===== SIDEBAR ===== -->
   <div id="sidebar">
     <h1>BZTracker</h1>
     <ul>
@@ -421,9 +405,9 @@
   </div>
   <div id="overlay"></div>
 
-  <!-- MAIN CONTENT -->
+  <!-- ===== MAIN CONTENT WRAPPER ===== -->
   <div id="mainContent">
-    <!-- SEARCH SECTION -->
+    <!-- ====================== SEARCH SECTION ====================== -->
     <section id="search-section">
       <h2>Search</h2>
       <form id="search-form">
@@ -435,9 +419,9 @@
       <div id="result"></div>
     </section>
 
-    <!-- FLEX ROW: GRAPH & TOP MARGINS -->
+    <!-- ====================== FLEX ROW FOR GRAPH & TOP MARGINS ====================== -->
     <div class="flex-row">
-      <!-- GRAPH SECTION -->
+      <!-- ===== PRICE GRAPH SECTION ===== -->
       <section id="graph-section" class="large">
         <h2>Price Graph</h2>
         <canvas id="priceGraph"></canvas>
@@ -450,7 +434,7 @@
         </div>
       </section>
 
-      <!-- TOP MARGINS SECTION -->
+      <!-- ===== TOP MARGINS SECTION ===== -->
       <section id="top-margins-section" class="small">
         <h2>Top 10 Items with Highest Margins</h2>
         <div>
@@ -474,7 +458,7 @@
       </section>
     </div>
 
-    <!-- PROFITABILITY SECTION -->
+    <!-- ===== PROFITABILITY SECTION ===== -->
     <section id="profitability-section">
       <h2>Profitability (Coins Per Hour)</h2>
       <div style="margin-bottom:10px;">
@@ -487,7 +471,7 @@
       <div id="profitability-result"></div>
     </section>
 
-    <!-- TOP VARIATIONS SECTION -->
+    <!-- ===== TOP VARIATIONS SECTION ===== -->
     <section id="top-variations-section">
       <h2>Top 10 Items with Highest Price Variations</h2>
       <div>
@@ -502,7 +486,7 @@
       <div id="top-variations"></div>
     </section>
 
-    <!-- SETTINGS SECTION -->
+    <!-- ===== SETTINGS SECTION (Theme Toggle, etc.) ===== -->
     <section id="settings-section">
       <h2>Settings</h2>
       <div id="theme-toggle-container">
@@ -512,12 +496,11 @@
           <option value="light">Light (Ice)</option>
         </select>
       </div>
-      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme.</p>
-      <p>The background features a large crack with a purple glow in dark mode. Hover your cursor over it to see a “flashlight shadow” effect. In light mode, sections get a frosty ice texture!</p>
+      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme. Particles, colors, and accents will adjust accordingly.</p>
     </section>
   </div>
 
-  <!-- BACKGROUND MUSIC -->
+  <!-- ===== BACKGROUND MUSIC (loop, initially paused) ===== -->
   <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9f8b1101b0.mp3?filename=mystic-realm-of-minecraft-235545.mp3" loop></audio>
 
   <!-- ====================== COMBINED JAVASCRIPT ====================== -->
@@ -536,6 +519,7 @@
       sidebar.classList.remove('open');
       overlay.classList.remove('show');
     });
+    // Close sidebar after clicking a link
     document.querySelectorAll('#sidebar a').forEach(link => {
       link.addEventListener('click', () => {
         sidebar.classList.remove('open');
@@ -560,11 +544,11 @@
     });
 
     /*********************************************************
-     * 3) THEME TOGGLE
+     * 3) THEME TOGGLE (Dark / Light)
      *********************************************************/
     const bodyEl = document.body;
     const themeSelect = document.getElementById('theme-select');
-    // Default to "dark-theme"
+    // Default is "dark-theme"
     themeSelect.value = 'dark';
     themeSelect.addEventListener('change', () => {
       if (themeSelect.value === 'light') {
@@ -577,31 +561,17 @@
     });
 
     /*********************************************************
-     * 4) PORTAL CRACK “FLASHLIGHT” EFFECT
-     *********************************************************/
-    const portalCrack = document.getElementById('portal-crack');
-    document.addEventListener('mousemove', (e) => {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
-      const scale = 0.05;
-      const offsetX = -dx * scale;
-      const offsetY = -dy * scale;
-      portalCrack.style.boxShadow = 
-        `${offsetX}px ${offsetY}px 40px 15px rgba(138,43,226, 0.6)`;
-    });
-
-    /*********************************************************
-     * 5) MINECRAFT-LIKE PARTICLES (Canvas, scroll + cursor)
+     * 4) MINECRAFT-LIKE PARTICLES (Canvas, scroll + cursor)
      *********************************************************/
     (function() {
       const container = document.getElementById('particle-container');
       if (!container) return;
 
+      // Create a full-screen canvas inside #particle-container
       const canvas = document.createElement('canvas');
       canvas.style.width = '100%';
       canvas.style.height = '100%';
+      canvas.style.display = 'block';
       container.appendChild(canvas);
 
       const ctx = canvas.getContext('2d');
@@ -624,21 +594,26 @@
         reset() {
           this.x = Math.random() * width;
           this.y = Math.random() * height;
+          // Gentle drift velocities
           this.vx = (Math.random() - 0.5) * 0.4;
           this.vy = (Math.random() - 0.5) * 0.4;
           this.size = 2 + Math.random() * 3;
+          // We'll read the theme-based color from a CSS variable each time we draw
+          // for an up-to-date theme color, or set it once here.
         }
         update() {
           this.x += this.vx;
           this.y += this.vy;
+          // Wrap around
           if (this.x < 0)  this.x = width;
           if (this.x > width)  this.x = 0;
           if (this.y < 0)  this.y = height;
           if (this.y > height) this.y = 0;
         }
-        draw(parallaxShift) {
+        draw(shiftY) {
           ctx.beginPath();
-          ctx.arc(this.x, this.y + parallaxShift, this.size, 0, 2 * Math.PI);
+          ctx.arc(this.x, this.y + shiftY, this.size, 0, 2 * Math.PI);
+          // get current particle color from the theme variable:
           const themeColor = getComputedStyle(document.body).getPropertyValue('--particle-color').trim();
           ctx.fillStyle = themeColor || 'rgba(138,43,226,0.5)';
           ctx.fill();
@@ -646,11 +621,12 @@
       }
 
       const particles = [];
-      const NUM_PARTICLES = 40;
+      const NUM_PARTICLES = 40; // Adjust as needed
       for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push(new Particle());
       }
 
+      // Cursor & scroll
       let mouseX = width / 2;
       let mouseY = height / 2;
       let scrollY = 0;
@@ -665,31 +641,37 @@
 
       function animate() {
         ctx.clearRect(0, 0, width, height);
+
         particles.forEach((p) => {
           p.update();
 
-          // Repel from cursor
+          // Repel from the cursor
           const dx = p.x - mouseX;
-          const dy = p.y - mouseY;
+          const dy = (p.y - mouseY);
           const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < 80) {
+          const repelRadius = 80;
+          if (dist < repelRadius) {
             const angle = Math.atan2(dy, dx);
-            const force = (80 - dist) / 80;
+            const force = (repelRadius - dist) / repelRadius; // 0..1
             p.x += Math.cos(angle) * force * 2;
             p.y += Math.sin(angle) * force * 2;
           }
 
-          // Parallax shift
-          const shiftY = scrollY * 0.05;
+          // Apply a small parallax shift based on scroll
+          const parallaxFactor = 0.05;
+          const shiftY = scrollY * parallaxFactor;
+
+          // Draw with final position
           p.draw(shiftY);
         });
+
         requestAnimationFrame(animate);
       }
       animate();
     })();
 
     /*********************************************************
-     * 6) ORIGINAL FUNCTIONALITY (Your code)
+     * 5) ORIGINAL FUNCTIONALITY (Your prior code)
      *********************************************************/
     document.addEventListener('DOMContentLoaded', () => {
       const searchInput       = document.getElementById('item-search');
@@ -704,7 +686,7 @@
       const refreshTopVarBtn  = document.getElementById('refresh-top-variations');
       const variationTimeSel  = document.getElementById('variation-time-range');
       let currentItem = '';
-      let chart;
+      let chart; // store Chart.js instance
 
       function showLoader(show) {
         loaderDiv.style.display = show ? 'block' : 'none';
@@ -761,8 +743,20 @@
             data: {
               labels,
               datasets: [
-                { label: 'Buy Price', data: buyPrices, borderColor: '#00ccff', fill: false, tension: 0.3 },
-                { label: 'Sell Price', data: sellPrices, borderColor: '#ff5733', fill: false, tension: 0.3 }
+                {
+                  label: 'Buy Price',
+                  data: buyPrices,
+                  borderColor: '#00ccff',
+                  fill: false,
+                  tension: 0.3
+                },
+                {
+                  label: 'Sell Price',
+                  data: sellPrices,
+                  borderColor: '#ff5733',
+                  fill: false,
+                  tension: 0.3
+                }
               ]
             },
             options: {
@@ -773,7 +767,9 @@
                   }
                 },
                 legend: {
-                  labels: { color: '#fff' }
+                  labels: {
+                    color: '#fff'
+                  }
                 }
               },
               scales: {
@@ -897,8 +893,7 @@
        * TOP MARGINS REFRESH
        ****************************/
       document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
-      // auto-refresh every 60 seconds
-      setInterval(fetchTopMargins, 60000);
+      setInterval(fetchTopMargins, 60000); // auto-refresh every 60s
       fetchTopMargins();
 
       /****************************
