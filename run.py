@@ -64,7 +64,7 @@ def plot_handler():
 threading.Thread(target=plot_handler, daemon=True).start()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, threading=True)
+    app.run(host="0.0.0.0", port=5000, threaded=True)
 
     #just a test
     
