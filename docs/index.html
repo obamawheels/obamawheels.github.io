@@ -15,24 +15,24 @@
       --font-family: "Roboto", sans-serif;
     }
 
-    /* === Dark Theme (“Crying Obsidian”) === */
+    /* === Dark Theme (Crying Obsidian) === */
     body.dark-theme {
-      --bg-color: #0b0c10;         
-      --sidebar-bg: #151528;       
-      --accent-color: #8a2be2;     
-      --text-color: #e6e6fa;       
-      --card-bg: #1d1d2b;         
-      --particle-color: rgba(138,43,226, 0.5); 
+      --bg-color: #0b0c10;          /* near-black background */
+      --sidebar-bg: #151528;        /* darker panel for the sidebar */
+      --accent-color: #8a2be2;      /* purple accent */
+      --text-color: #e6e6fa;        /* light-lavender text */
+      --card-bg: #1d1d2b;          /* dark card background */
+      --particle-color: rgba(138,43,226, 0.5);
     }
 
-    /* === Light Theme (“Ice”) === */
+    /* === Light Theme (Ice) === */
     body.light-theme {
-      --bg-color: #f6fafd;        
-      --sidebar-bg: #eaf2f8;      
-      --accent-color: #3eb4f0;    
-      --text-color: #1a1a1a;      
-      --card-bg: #ffffff;         
-      --particle-color: rgba(62,180,240, 0.5); 
+      --bg-color: #f6fafd;          
+      --sidebar-bg: #eaf2f8;        
+      --accent-color: #3eb4f0;      
+      --text-color: #1a1a1a;        
+      --card-bg: #ffffff;           
+      --particle-color: rgba(62,180,240, 0.5);
     }
 
     /***********************************************
@@ -51,12 +51,35 @@
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
-      transition: background-color var(--transition-speed), color var(--transition-speed);
-      overflow-x: hidden;
-      position: relative; 
+      transition: background-color var(--transition-speed),
+                  color var(--transition-speed);
+      overflow-x: hidden; 
+      position: relative;
     }
 
-    /* Particle container for the background canvas */
+    /***********************************************
+     * BACKGROUND CRACK / PORTAL
+     ***********************************************/
+    /* This container holds a “crack” image with a radial purple glow behind it. */
+    #portal-crack {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 800px;       /* adjust as desired */
+      height: 600px;      /* adjust as desired */
+      transform: translate(-50%, -50%);
+      background: 
+        radial-gradient(circle, rgba(138,43,226,0.5) 0%, transparent 70%), 
+        url("assets/crack.png") no-repeat center;
+      background-size: cover;
+      pointer-events: none; /* so user can still click the rest of the page */
+      z-index: 1; /* behind main content but above particles if you prefer */
+      transition: box-shadow 0.1s ease; /* for the “flashlight” effect */
+    }
+
+    /***********************************************
+     * PARTICLE CONTAINER (Canvas)
+     ***********************************************/
     #particle-container {
       position: fixed;
       top: 0; 
@@ -64,12 +87,12 @@
       width: 100%; 
       height: 100%;
       pointer-events: none;
-      z-index: 0;
+      z-index: 0; 
       overflow: hidden;
     }
 
     /***********************************************
-     *  SIDEBAR & MENU / SOUND TOGGLES
+     * SIDEBAR & MENU / SOUND TOGGLES
      ***********************************************/
     #menuToggle, #soundToggle {
       position: fixed;
@@ -134,7 +157,7 @@
       text-decoration: none;
     }
     #sidebar a:hover {
-      background: rgba(138, 43, 226, 0.2); 
+      background: rgba(138, 43, 226, 0.2);
       text-shadow: 0 0 5px var(--accent-color);
     }
     #overlay {
@@ -151,7 +174,7 @@
     }
 
     /***********************************************
-     *   MAIN CONTENT & SECTION BACKGROUNDS
+     * MAIN CONTENT & SECTIONS
      ***********************************************/
     #mainContent {
       max-width: 1200px;
@@ -161,38 +184,20 @@
       z-index: 10; 
     }
 
-    /*
-      The next two blocks provide the distinct looks for each theme’s sections:
-      - Dark theme: cracked crying obsidian texture + neon glow
-      - Light theme: ice texture overlay
-      Just replace the URLs with your own textures or images if you like.
-    */
-    body.dark-theme section {
-      /* 
-         Example: a “cracked Crying Obsidian” background plus a neon glow around each section.
-         Replace crying_obsidian.png with your actual image. 
-      */
-      background: 
-        url("assets/crying_obsidian.png") /* placeholder image path */
-        no-repeat center/cover,
-        var(--card-bg);
-      box-shadow: 0 0 12px var(--accent-color);
-      border: 2px solid rgba(138,43,226,0.3);
-    }
-
+    /* Dark theme sections remain the same, but in the Light theme, we apply an ice texture. */
     body.light-theme section {
-      /*
-         Example: an ice texture overlay for the background
-         Replace ice_texture.png with your actual image.
-      */
-      background:
-        url("assets/ice_texture.png") /* placeholder image path */
-        no-repeat center/cover,
+      background: 
+        url("assets/ice_texture.png") no-repeat center/cover, 
         var(--card-bg);
-      box-shadow: 0 0 12px rgba(62,180,240, 0.3);
-      border: 2px solid rgba(62,180,240,0.3);
     }
 
+    section {
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      margin-bottom: 50px;
+      padding: 20px;
+      transition: background var(--transition-speed);
+    }
     section h2 {
       text-align: center;
       margin-bottom: 20px;
@@ -200,7 +205,7 @@
     }
 
     /***********************************************
-     *   LOADER (SPINNER)
+     * LOADER (SPINNER)
      ***********************************************/
     #loader {
       display: none;
@@ -221,7 +226,7 @@
     }
 
     /***********************************************
-     *         SEARCH SECTION
+     * SEARCH SECTION
      ***********************************************/
     #search-form {
       display: flex;
@@ -262,7 +267,7 @@
     }
 
     /***********************************************
-     *         GRAPH SECTION
+     * GRAPH SECTION
      ***********************************************/
     .time-range-btn {
       margin: 0 5px;
@@ -288,7 +293,7 @@
     }
 
     /***********************************************
-     *         TOP MARGINS & ITEMS
+     * TOP MARGINS & ITEMS
      ***********************************************/
     #top-margins-section select,
     #top-margins-section button {
@@ -318,7 +323,7 @@
     }
 
     /***********************************************
-     *         PROFITABILITY SECTION
+     * PROFITABILITY SECTION
      ***********************************************/
     #profitability-section input {
       width: 80px;
@@ -331,7 +336,7 @@
     }
 
     /***********************************************
-     *         TOP VARIATIONS SECTION
+     * TOP VARIATIONS SECTION
      ***********************************************/
     #top-variations-section select,
     #top-variations-section button {
@@ -342,7 +347,7 @@
     }
 
     /***********************************************
-     *         FLEX LAYOUTS
+     * FLEX LAYOUTS
      ***********************************************/
     .flex-row {
       display: flex;
@@ -354,7 +359,16 @@
     .small { flex: 1; }
 
     /***********************************************
-     *        SETTINGS SECTION (THEME TOGGLE)
+     * RESPONSIVE
+     ***********************************************/
+    @media (max-width: 768px) {
+      .flex-row { flex-direction: column; }
+      .large, .small { flex: 1 1 100%; }
+      #search-form button { align-self: stretch; }
+    }
+
+    /***********************************************
+     * SETTINGS SECTION (THEME TOGGLE)
      ***********************************************/
     #settings-section {
       display: flex;
@@ -380,27 +394,21 @@
       color: #fff;
       background-color: #2f2f46;
     }
-
-    /***********************************************
-     *         RESPONSIVE
-     ***********************************************/
-    @media (max-width: 768px) {
-      .flex-row { flex-direction: column; }
-      .large, .small { flex: 1 1 100%; }
-      #search-form button { align-self: stretch; }
-    }
   </style>
 </head>
 
 <body class="dark-theme">
-  <!-- Particle Container (Canvas for your scrolling, interactive particles) -->
+  <!-- Particle Container (Canvas) -->
   <div id="particle-container"></div>
 
-  <!-- ===== SIDEBAR TOGGLE & SOUND TOGGLE ===== -->
+  <!-- The “portal crack” behind everything. Big cracked shape with purple glow. -->
+  <div id="portal-crack"></div>
+
+  <!-- SIDEBAR TOGGLE & SOUND TOGGLE -->
   <button id="menuToggle">☰</button>
   <button id="soundToggle">🔇</button>
 
-  <!-- ===== SIDEBAR ===== -->
+  <!-- SIDEBAR -->
   <div id="sidebar">
     <h1>BZTracker</h1>
     <ul>
@@ -414,9 +422,9 @@
   </div>
   <div id="overlay"></div>
 
-  <!-- ===== MAIN CONTENT WRAPPER ===== -->
+  <!-- MAIN CONTENT -->
   <div id="mainContent">
-    <!-- ====================== SEARCH SECTION ====================== -->
+    <!-- SEARCH SECTION -->
     <section id="search-section">
       <h2>Search</h2>
       <form id="search-form">
@@ -428,9 +436,9 @@
       <div id="result"></div>
     </section>
 
-    <!-- ====================== FLEX ROW FOR GRAPH & TOP MARGINS ====================== -->
+    <!-- FLEX ROW: GRAPH & TOP MARGINS -->
     <div class="flex-row">
-      <!-- ===== PRICE GRAPH SECTION ===== -->
+      <!-- GRAPH SECTION -->
       <section id="graph-section" class="large">
         <h2>Price Graph</h2>
         <canvas id="priceGraph"></canvas>
@@ -443,7 +451,7 @@
         </div>
       </section>
 
-      <!-- ===== TOP MARGINS SECTION ===== -->
+      <!-- TOP MARGINS SECTION -->
       <section id="top-margins-section" class="small">
         <h2>Top 10 Items with Highest Margins</h2>
         <div>
@@ -467,7 +475,7 @@
       </section>
     </div>
 
-    <!-- ===== PROFITABILITY SECTION ===== -->
+    <!-- PROFITABILITY SECTION -->
     <section id="profitability-section">
       <h2>Profitability (Coins Per Hour)</h2>
       <div style="margin-bottom:10px;">
@@ -480,7 +488,7 @@
       <div id="profitability-result"></div>
     </section>
 
-    <!-- ===== TOP VARIATIONS SECTION ===== -->
+    <!-- TOP VARIATIONS SECTION -->
     <section id="top-variations-section">
       <h2>Top 10 Items with Highest Price Variations</h2>
       <div>
@@ -495,7 +503,7 @@
       <div id="top-variations"></div>
     </section>
 
-    <!-- ===== SETTINGS SECTION (Theme Toggle, etc.) ===== -->
+    <!-- SETTINGS SECTION -->
     <section id="settings-section">
       <h2>Settings</h2>
       <div id="theme-toggle-container">
@@ -505,11 +513,12 @@
           <option value="light">Light (Ice)</option>
         </select>
       </div>
-      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme. Each section will reflect your chosen style, from cracked neon obsidian to frosted ice overlays.</p>
+      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme.</p>
+      <p>The background now features a large crack with a purple glow, like a portal. Hover or move your mouse over it to see a “flashlight shadow” effect!</p>
     </section>
   </div>
 
-  <!-- ===== BACKGROUND MUSIC (loop, initially paused) ===== -->
+  <!-- BACKGROUND MUSIC -->
   <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9f8b1101b0.mp3?filename=mystic-realm-of-minecraft-235545.mp3" loop></audio>
 
   <!-- ====================== COMBINED JAVASCRIPT ====================== -->
@@ -552,11 +561,11 @@
     });
 
     /*********************************************************
-     * 3) THEME TOGGLE (Dark / Light)
+     * 3) THEME TOGGLE
      *********************************************************/
     const bodyEl = document.body;
     const themeSelect = document.getElementById('theme-select');
-    // Default is "dark-theme"
+    // Default to "dark-theme"
     themeSelect.value = 'dark';
     themeSelect.addEventListener('change', () => {
       if (themeSelect.value === 'light') {
@@ -569,17 +578,38 @@
     });
 
     /*********************************************************
-     * 4) MINECRAFT-LIKE PARTICLES (Canvas, scroll + cursor)
+     * 4) PORTAL CRACK “FLASHLIGHT” EFFECT
+     *********************************************************/
+    const portalCrack = document.getElementById('portal-crack');
+    // We'll simulate a shadow offset from the center of the crack
+    // based on the mouse position. This is a simple approach.
+    document.addEventListener('mousemove', (e) => {
+      // Compute how far the mouse is from the center of the screen
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      // The shadow offset can be scaled
+      const scale = 0.05;
+      const offsetX = -dx * scale;
+      const offsetY = -dy * scale;
+
+      // The shadow color can match the purple glow
+      // We'll add some blur for a “light blocked” effect
+      portalCrack.style.boxShadow = 
+        `${offsetX}px ${offsetY}px 40px 15px rgba(138,43,226, 0.6)`;
+    });
+
+    /*********************************************************
+     * 5) MINECRAFT-LIKE PARTICLES (Canvas, scroll + cursor)
      *********************************************************/
     (function() {
       const container = document.getElementById('particle-container');
       if (!container) return;
 
-      // Create a full-screen canvas
       const canvas = document.createElement('canvas');
       canvas.style.width = '100%';
       canvas.style.height = '100%';
-      canvas.style.display = 'block';
       container.appendChild(canvas);
 
       const ctx = canvas.getContext('2d');
@@ -614,10 +644,9 @@
           if (this.y < 0)  this.y = height;
           if (this.y > height) this.y = 0;
         }
-        draw(shiftY) {
+        draw(parallaxShift) {
           ctx.beginPath();
-          ctx.arc(this.x, this.y + shiftY, this.size, 0, 2 * Math.PI);
-          // get current theme-based color
+          ctx.arc(this.x, this.y + parallaxShift, this.size, 0, 2 * Math.PI);
           const themeColor = getComputedStyle(document.body).getPropertyValue('--particle-color').trim();
           ctx.fillStyle = themeColor || 'rgba(138,43,226,0.5)';
           ctx.fill();
@@ -632,12 +661,12 @@
 
       let mouseX = width / 2;
       let mouseY = height / 2;
+      let scrollY = 0;
+
       window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
       });
-
-      let scrollY = 0;
       window.addEventListener('scroll', () => {
         scrollY = window.scrollY;
       });
@@ -646,7 +675,7 @@
         ctx.clearRect(0, 0, width, height);
         particles.forEach((p) => {
           p.update();
-          // Repel from cursor
+          // Repel from the cursor
           const dx = p.x - mouseX;
           const dy = p.y - mouseY;
           const dist = Math.sqrt(dx*dx + dy*dy);
@@ -656,9 +685,9 @@
             p.x += Math.cos(angle) * force * 2;
             p.y += Math.sin(angle) * force * 2;
           }
-          // Parallax shift
-          const parallaxFactor = 0.05;
-          p.draw(scrollY * parallaxFactor);
+          // Slight parallax shift
+          const shiftY = scrollY * 0.05;
+          p.draw(shiftY);
         });
         requestAnimationFrame(animate);
       }
@@ -666,7 +695,7 @@
     })();
 
     /*********************************************************
-     * 5) ORIGINAL FUNCTIONALITY (Your prior code)
+     * 6) ORIGINAL FUNCTIONALITY (Your prior code)
      *********************************************************/
     document.addEventListener('DOMContentLoaded', () => {
       const searchInput       = document.getElementById('item-search');
@@ -681,7 +710,7 @@
       const refreshTopVarBtn  = document.getElementById('refresh-top-variations');
       const variationTimeSel  = document.getElementById('variation-time-range');
       let currentItem = '';
-      let chart; // store Chart.js instance
+      let chart; 
 
       function showLoader(show) {
         loaderDiv.style.display = show ? 'block' : 'none';
@@ -738,20 +767,8 @@
             data: {
               labels,
               datasets: [
-                {
-                  label: 'Buy Price',
-                  data: buyPrices,
-                  borderColor: '#00ccff',
-                  fill: false,
-                  tension: 0.3
-                },
-                {
-                  label: 'Sell Price',
-                  data: sellPrices,
-                  borderColor: '#ff5733',
-                  fill: false,
-                  tension: 0.3
-                }
+                { label: 'Buy Price', data: buyPrices, borderColor: '#00ccff', fill: false, tension: 0.3 },
+                { label: 'Sell Price', data: sellPrices, borderColor: '#ff5733', fill: false, tension: 0.3 }
               ]
             },
             options: {
@@ -762,20 +779,12 @@
                   }
                 },
                 legend: {
-                  labels: {
-                    color: '#fff'
-                  }
+                  labels: { color: '#fff' }
                 }
               },
               scales: {
-                x: {
-                  ticks: { color: '#fff' },
-                  grid: { color: '#555' }
-                },
-                y: {
-                  ticks: { color: '#fff' },
-                  grid: { color: '#555' }
-                }
+                x: { ticks: { color: '#fff' }, grid: { color: '#555' } },
+                y: { ticks: { color: '#fff' }, grid: { color: '#555' } }
               }
             }
           });
@@ -888,7 +897,7 @@
        * TOP MARGINS REFRESH
        ****************************/
       document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
-      setInterval(fetchTopMargins, 60000); 
+      setInterval(fetchTopMargins, 60000);
       fetchTopMargins();
 
       /****************************
