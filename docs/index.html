@@ -2,346 +2,482 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crying Obsidian Themed UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crying Obsidian Flipper</title>
+  <!-- Load Chart.js (as in your original code) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
   <style>
-    /* === Theme Colors (CSS Variables) === */
+    /***************
+     *  CSS VARIABLES
+     ***************/
     :root {
-      --bg-color: #0b0c10;            /* Near-black background */
-      --accent-color: #8a2be2;        /* Purple accent (blueviolet) */
-      --text-color: #d4d4f0;          /* Light text color */
+      --bg-color: #0b0c10;          /* Dark background for "Crying Obsidian" vibe */
+      --accent-color: #8a2be2;      /* Purple accent (blueviolet) */
+      --text-color: #e6e6fa;        /* Light-lavender text */
+      --sidebar-bg: #151528;        /* Extra-dark sidebar background */
+      --card-bg: #1d1d2b;          /* Slightly lighter dark background for cards */
+      --transition-speed: 0.3s;     /* Common speed for transitions/animations */
     }
-    /* Basic page styling */
-    html { scroll-behavior: smooth; background: var(--bg-color); color: var(--text-color); font-family: sans-serif; }
+
+    /***************
+     *  GLOBAL STYLES
+     ***************/
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg-color);
+      font-family: "Roboto", sans-serif;
+    }
     body {
       margin: 0;
-      background: radial-gradient(at 30% 30%, rgba(138,43,226,0.2), transparent 50%),
-                  radial-gradient(at 70% 70%, rgba(138,43,226,0.15), transparent 50%),
-                  var(--bg-color);
-      /* Two purple glow spots + solid bg */
-      background-size: cover;
-      overflow-x: hidden;
-      animation: ambientGlow 20s infinite alternate;
-    }
-    /* Ambient background glow animation */
-    @keyframes ambientGlow {
-      0%   { background-position: 0% 0%,  100% 100%, center; }
-      50%  { background-position: 10% 5%, 90%  95%,  center; }
-      100% { background-position: 0% 0%,  100% 100%, center; }
-    }
-    /* === Sidebar Navigation === */
-    #sidebar {
-      position: fixed; top: 0; left: 0;
-      width: 250px; height: 100%;
-      background: #151528;              /* very dark purple/indigo */
-      padding: 60px 20px 20px;          /* space at top for toggle button */
-      box-shadow: 5px 0 15px rgba(0,0,0,0.8);
-      transform: translateX(-260px);    /* hide off-screen */
-      transition: transform 0.3s ease;  /* slide animation */
-      z-index: 200;
-    }
-    #sidebar.open { transform: translateX(0); } /* Sidebar visible */
-    #sidebar ul { list-style: none; padding: 0; margin: 0; }
-    #sidebar li { margin: 15px 0; }
-    #sidebar a {
-      display: block; text-decoration: none;
+      padding: 0;
       color: var(--text-color);
-      font-weight: bold;
+      /* Animated background with two radial purple lights */
+      background: radial-gradient(at 30% 30%, rgba(138,43,226,0.15), transparent 40%),
+                  radial-gradient(at 70% 70%, rgba(138,43,226,0.15), transparent 40%),
+                  var(--bg-color);
+      animation: purpleGlow 15s infinite alternate;
+      overflow-x: hidden;
+    }
+    @keyframes purpleGlow {
+      0% {
+        background-position: 0% 0%, 100% 100%, center;
+      }
+      50% {
+        background-position: 10% 10%, 90% 90%, center;
+      }
+      100% {
+        background-position: 0% 0%, 100% 100%, center;
+      }
+    }
+
+    h1, h2 {
+      margin: 0 0 15px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    a {
+      text-decoration: none;
+      color: var(--accent-color);
+    }
+    a:hover {
+      text-shadow: 0 0 5px var(--accent-color);
+    }
+    p, label {
+      margin: 0.5rem 0;
+    }
+    button {
+      cursor: pointer;
+      outline: none;
+      border: none;
+      background: var(--accent-color);
+      color: #fff;
+      padding: 0.7rem 1rem;
+      border-radius: 5px;
+      transition: background var(--transition-speed), box-shadow var(--transition-speed);
+    }
+    button:hover {
+      background: #6c1bbd;
+      box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    /***************
+     *  SIDEBAR STYLES
+     ***************/
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 240px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      padding: 60px 20px;
+      transform: translateX(-260px); /* hidden by default */
+      transition: transform var(--transition-speed) ease;
+      z-index: 999;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.7);
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #sidebar h1 {
+      margin: 0 0 30px 0;
+      color: var(--accent-color);
+    }
+    #sidebar ul {
+      list-style: none;
+      margin: 0; padding: 0;
+    }
+    #sidebar li {
+      margin: 15px 0;
+    }
+    #sidebar a {
+      color: var(--text-color);
+      font-size: 1rem;
+      display: block;
+      transition: background var(--transition-speed), text-shadow var(--transition-speed);
       padding: 8px 5px;
       border-radius: 4px;
-      transition: background 0.3s, text-shadow 0.3s;
     }
     #sidebar a:hover {
-      background: rgba(138,43,226,0.3);              /* purple highlight */
-      text-shadow: 0 0 5px var(--accent-color);      /* glow text */
+      background: rgba(138,43,226,0.3);
+      text-shadow: 0 0 5px var(--accent-color);
     }
-    /* Overlay to dim page when sidebar is open */
+    /* Overlay behind sidebar */
     #overlay {
-      position: fixed; top: 0; left: 0;
+      position: fixed;
+      top: 0; left: 0;
       width: 100%; height: 100%;
       background: rgba(0,0,0,0.5);
       display: none;
-      z-index: 150;
+      z-index: 998;
     }
-    #overlay.show { display: block; }
-    /* === Top Controls (Menu and Sound Toggle) === */
+    #overlay.show {
+      display: block;
+    }
+
+    /***************
+     *  TOGGLE BUTTONS (menu + sound)
+     ***************/
     #menuToggle, #soundToggle {
-      position: fixed; top: 15px;
-      background: none; color: var(--accent-color);
+      position: fixed;
+      top: 15px;
+      background: none;
+      color: var(--accent-color);
       border: 2px solid var(--accent-color);
-      padding: 5px 10px;
+      padding: 8px 12px;
       font-size: 18px;
       border-radius: 4px;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-      z-index: 300;
+      z-index: 1000;
+      transition: background var(--transition-speed), color var(--transition-speed);
     }
-    #menuToggle { left: 15px; }   /* hamburger menu button */
-    #soundToggle { right: 15px; } /* sound on/off button */
     #menuToggle:hover, #soundToggle:hover {
       background: var(--accent-color);
       color: #fff;
       text-shadow: 0 0 5px var(--accent-color);
     }
-    /* === Main Content Area === */
-    #mainContent { 
-      max-width: 1200px; margin: 0 auto; 
-      padding: 60px 20px 40px;         /* top padding to avoid overlap with fixed header buttons */
+    #menuToggle {
+      left: 15px;
     }
-    section { margin-bottom: 60px; }
-    section h2 {
-      font-size: 1.5em;
-      border-bottom: 2px solid var(--accent-color);
-      padding-bottom: 5px;
-      margin-bottom: 15px;
+    #soundToggle {
+      right: 15px;
     }
-    /* === Search Section === */
-    #searchSection input[type=text] {
-      width: 60%; max-width: 300px;
-      padding: 8px;
-      border: 2px solid #333;
-      border-radius: 4px;
-      background: #222;            /* input background */
-      color: var(--text-color);
-      margin-right: 5px;
+
+    /***************
+     *  MAIN CONTENT WRAPPER
+     ***************/
+    #mainContent {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 70px 20px 40px; /* top padding so it doesn't conflict with toggle buttons */
     }
-    #searchSection input::placeholder { color: #888; }
-    #searchSection button {
-      padding: 8px 12px;
-      background: var(--accent-color);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
+    section {
+      margin-bottom: 60px;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(138,43,226,0.3);
     }
-    #searchSection button:hover { background: #6c1bbd; } /* darker purple */
-    #searchResults {
-      margin-top: 10px;
-    }
-    .result-category { 
-      font-weight: bold; margin-top: 10px;
-    }
-    #searchResults ul { list-style: none; padding: 0; margin: 5px 0 15px; }
-    #searchResults li {
-      padding: 4px 0;
-      border-bottom: 1px solid #333;
-    }
-    /* === Price Graph Section === */
-    #graphSection { text-align: center; }
-    .graph-controls { margin-bottom: 10px; }
-    .graph-controls button {
-      margin: 0 5px;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      background: #333;
-      color: var(--text-color);
-      cursor: pointer;
-      transition: background 0.3s, box-shadow 0.3s;
-    }
-    .graph-controls button:hover { 
-      background: var(--accent-color); color: #fff;
-    }
-    .graph-controls button.active {
-      background: var(--accent-color); color: #fff;
-      box-shadow: 0 0 10px var(--accent-color);
-    }
-    #priceChart {
-      width: 100%; max-width: 600px;
-      height: 300px;
+
+    /***************
+     *  SEARCH SECTION
+     ***************/
+    #search-section input[type="text"] {
+      width: 100%;
+      padding: 15px;
       background: #222;
       border: 2px solid #333;
-      border-radius: 4px;
+      border-radius: 5px;
+      color: var(--text-color);
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    #search-section input::placeholder {
+      color: #777;
+    }
+    #suggestions {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    #suggestions div {
+      background: #2a2a3d;
+      padding: 10px;
+      border: 1px solid var(--accent-color);
+      cursor: pointer;
+      transition: background var(--transition-speed);
+    }
+    #suggestions div:hover {
+      background: #393960;
+    }
+    #result p {
+      margin: 5px 0;
+    }
+    /* Loader */
+    #loader {
+      display: none;
+      margin: 10px 0;
+      text-align: center;
+    }
+    .spinner {
+      border: 6px solid #222;
+      border-top: 6px solid var(--accent-color);
+      border-radius: 50%;
+      width: 35px; height: 35px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /***************
+     *  GRAPH SECTION
+     ***************/
+    #graph-section h2 {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    #graph-section canvas {
+      background: #1a1a1a;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(138,43,226,0.3);
       display: block;
-      margin: 0 auto;   /* center the canvas */
+      width: 100%; /* Let it be responsive */
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 10px;
     }
-    /* === Top Items Section (Margins & Variations) === */
-    .subsection { margin-top: 30px; }
-    .subsection h3 { 
-      font-size: 1.2em;
-      margin-bottom: 8px;
+    .time-range-btn {
+      margin: 0 5px;
+      padding: 5px 10px;
+      background: #333;
+      color: var(--text-color);
+      transition: background var(--transition-speed), box-shadow var(--transition-speed);
+      border-radius: 5px;
     }
-    #topItemsSection ul { list-style: none; padding: 0; margin: 0; }
-    #topItemsSection li {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 5px;
-      border-bottom: 1px solid #333;
-      transition: background 0.3s, text-shadow 0.3s;
+    .time-range-btn:hover {
+      background: var(--accent-color);
+      color: #fff;
+      box-shadow: 0 0 8px var(--accent-color);
     }
-    #topItemsSection li:hover {
-      background: rgba(138,43,226,0.2);
-      text-shadow: 0 0 5px var(--accent-color);
+
+    /***************
+     *  FLEX LAYOUTS (like original)
+     ***************/
+    .flex-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: space-between;
     }
-    #topItemsSection li .value {
+    .large { flex: 2; }
+    .small { flex: 1; }
+
+    /***************
+     *  TOP MARGINS SECTION
+     ***************/
+    #top-margins-section {
+      position: relative;
+    }
+    #top-margins-section select {
+      margin: 0 5px 0 10px;
+      padding: 5px 8px;
+      background: #2f2f46;
+      color: var(--text-color);
+      border: 2px solid #444;
+      border-radius: 5px;
+      outline: none;
+      cursor: pointer;
+    }
+    #top-margins-section button {
+      margin-left: 5px;
+    }
+    #top-margins {
+      margin-top: 15px;
+    }
+    .item-card {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(138,43,226,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-bottom: 10px;
+    }
+    .item-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 10px var(--accent-color);
+    }
+    .item-card p {
+      margin: 5px 0;
+    }
+    .item-card span {
       color: var(--accent-color);
       font-weight: bold;
     }
-    /* Controls for lists */
-    #sortMarginBtn, #variationRangeSelect {
-      margin: 5px 0 15px;
-      padding: 5px 8px;
-      border-radius: 4px;
-      border: 1px solid #333;
-      background: #222;
-      color: var(--text-color);
-      cursor: pointer;
-      font: inherit;
+
+    /***************
+     *  PROFITABILITY SECTION
+     ***************/
+    #profitability-section label {
+      margin-right: 10px;
     }
-    /* === Profit Calculator Section === */
-    #calculatorSection label {
-      display: block;
-      margin: 10px 0;
-      font-size: 1em;
-    }
-    #calculatorSection input {
+    #profitability-section input {
+      width: 80px;
       padding: 5px;
-      width: 200px;
-      border: 2px solid #333;
-      border-radius: 4px;
-      background: #222;
+      margin-right: 10px;
+      border: 2px solid #444;
+      background: #2f2f46;
       color: var(--text-color);
-      margin-left: 10px;
+      border-radius: 5px;
     }
-    #calculatorSection button {
-      margin-top: 15px;
-      padding: 8px 12px;
-      background: var(--accent-color);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    #calculatorSection button:hover { background: #6c1bbd; }
-    #profitResult {
-      margin-top: 15px;
-      font-weight: bold;
-      font-size: 1.1em;
-      min-height: 24px;
-    }
-    /* flash animation for result update */
-    @keyframes flash {
-      0%   { background-color: rgba(138,43,226,0.5); }
-      100% { background-color: transparent; }
-    }
-    .flash { animation: flash 1s ease-out; }
-    /* === Responsive Adjustments === */
-    @media (max-width: 600px) {
-      #sidebar { width: 200px; transform: translateX(-210px); }
-      #mainContent { padding: 60px 15px 30px; }
-      /* Smaller font or canvas adjustments if needed */
-      #priceChart { height: 200px; }
-      #menuToggle, #soundToggle { font-size: 16px; padding: 5px 8px; }
-      #searchSection input { width: 100%; max-width: none; margin: 0 0 10px; }
-    }
-    /* Hover/focus glow for interactive elements (general) */
-    button:hover, input:focus, select:focus {
+
+    /***************
+     *  TOP VARIATIONS SECTION
+     ***************/
+    #top-variations-section select {
+      margin: 0 5px 0 10px;
+      padding: 5px 8px;
+      background: #2f2f46;
+      color: var(--text-color);
+      border: 2px solid #444;
+      border-radius: 5px;
       outline: none;
-      box-shadow: 0 0 5px var(--accent-color);
+      cursor: pointer;
+    }
+    #top-variations {
+      margin-top: 15px;
+    }
+
+    /***************
+     *  RESPONSIVE ADJUSTMENTS
+     ***************/
+    @media (max-width: 768px) {
+      .flex-row { flex-direction: column; }
+      .large, .small { flex: 1 1 100%; }
+      #search-section input[type="text"] { font-size: 1rem; }
     }
   </style>
 </head>
 <body>
-  <!-- Sidebar toggle and sound toggle buttons -->
+  <!-- ===== SOUND TOGGLE & MENU TOGGLE ===== -->
   <button id="menuToggle">☰</button>
   <button id="soundToggle">🔇</button>
 
-  <!-- Sidebar Navigation Menu -->
+  <!-- ===== SIDEBAR ===== -->
   <div id="sidebar">
+    <h1>Crying Obsidian</h1>
     <ul>
-      <li><a href="#searchSection">Search</a></li>
-      <li><a href="#graphSection">Graphs</a></li>
-      <li><a href="#topItemsSection">Top Items</a></li>
-      <li><a href="#calculatorSection">Profit Calculator</a></li>
+      <li><a href="#search-section">Search</a></li>
+      <li><a href="#graph-section">Price Graph</a></li>
+      <li><a href="#top-margins-section">Top Margins</a></li>
+      <li><a href="#profitability-section">Profitability</a></li>
+      <li><a href="#top-variations-section">Top Variations</a></li>
     </ul>
   </div>
   <div id="overlay"></div>
 
-  <!-- Main Content Sections -->
+  <!-- ===== MAIN CONTENT WRAPPER ===== -->
   <div id="mainContent">
-    <!-- Search Section -->
-    <section id="searchSection">
+    <!-- ====================== SEARCH SECTION ====================== -->
+    <section id="search-section">
       <h2>Search</h2>
-      <input type="text" id="searchInput" placeholder="Search for an item..." />
-      <button id="searchBtn">Search</button>
-      <div id="searchResults"></div>
+      <form id="search-form" class="flex-column" style="margin-bottom: 10px;">
+        <input type="text" id="item-search" placeholder="Search for an item..." autocomplete="off"/>
+        <div id="suggestions"></div>
+        <button type="submit">Search</button>
+      </form>
+      <div id="loader"><div class="spinner"></div></div>
+      <div id="result"></div>
     </section>
 
-    <!-- Price Graph Section -->
-    <section id="graphSection">
-      <h2>Price Graph</h2>
-      <div class="graph-controls">
-        <button data-range="1H">1 Hour</button>
-        <button data-range="1D" class="active">1 Day</button>
-        <button data-range="1W">1 Week</button>
-        <button data-range="1Y">1 Year</button>
-        <button data-range="ALL">All Time</button>
-      </div>
-      <canvas id="priceChart" width="600" height="300"></canvas>
-    </section>
-
-    <!-- Top Items Section (Margins & Variations) -->
-    <section id="topItemsSection">
-      <h2>Top Items</h2>
-      <!-- Top Margins Subsection -->
-      <div class="subsection">
-        <h3>Top 10 Items with Highest Margins</h3>
-        <button id="sortMarginBtn">Sort Ascending</button>
-        <ul id="marginList"></ul>
-      </div>
-      <!-- Top Variations Subsection -->
-      <div class="subsection">
-        <h3>Top 10 Items with Highest Price Variations</h3>
-        <div>Time Range:
-          <select id="variationRangeSelect">
-            <option value="1H">1 Hour</option>
-            <option value="1D" selected>1 Day</option>
-            <option value="1W">1 Week</option>
-            <option value="1Y">1 Year</option>
-            <option value="ALL">All Time</option>
-          </select>
+    <!-- ====================== MAIN CONTENT SECTIONS ====================== -->
+    <div class="flex-row">
+      <!-- PRICE GRAPH SECTION -->
+      <article id="graph-section" class="large">
+        <h2>Price Graph</h2>
+        <canvas id="priceGraph"></canvas>
+        <div class="flex-row" style="justify-content: center;">
+          <button class="time-range-btn" data-range="1h">1 Hour</button>
+          <button class="time-range-btn" data-range="24h">1 Day</button>
+          <button class="time-range-btn" data-range="1w">1 Week</button>
+          <button class="time-range-btn" data-range="1y">1 Year</button>
+          <button class="time-range-btn" data-range="all">All Time</button>
         </div>
-        <ul id="variationList"></ul>
+      </article>
+
+      <!-- TOP MARGINS SECTION -->
+      <aside id="top-margins-section" class="small">
+        <h2>Top 10 Items with Highest Margins</h2>
+        <div>
+          <label for="sort-by">Sort by:</label>
+          <select id="sort-by">
+            <option value="margin" selected>Margin</option>
+            <option value="buy_price">Buy Price</option>
+            <option value="sell_price">Sell Price</option>
+            <option value="demand">Demand</option>
+            <option value="supply">Supply</option>
+          </select>
+
+          <label for="order">Order:</label>
+          <select id="order">
+            <option value="desc" selected>Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+          <button id="refresh-top-margins">Refresh</button>
+        </div>
+        <div id="top-margins"></div>
+      </aside>
+    </div>
+
+    <!-- PROFITABILITY SECTION -->
+    <section id="profitability-section">
+      <h2>Profitability (Coins Per Hour)</h2>
+      <div style="margin-bottom:10px;">
+        <label for="coins">Coins:</label>
+        <input type="number" id="coins" value="0"/>
+        <label for="difficulty">Difficulty:</label>
+        <input type="number" id="difficulty" value="1" step="0.1"/>
+        <button id="calculate-profit">Calculate Profit</button>
       </div>
+      <div id="profitability-result"></div>
     </section>
 
-    <!-- Profitability Calculator Section -->
-    <section id="calculatorSection">
-      <h2>Profitability Calculator</h2>
-      <label for="coinsInput">Coins: 
-        <input type="number" id="coinsInput" value="0" />
-      </label>
-      <label for="diffInput">Difficulty: 
-        <input type="number" id="diffInput" value="0" />
-      </label>
-      <button id="calcBtn">Calculate Profit</button>
-      <div id="profitResult"></div>
+    <!-- TOP VARIATIONS SECTION -->
+    <section id="top-variations-section">
+      <h2>Top 10 Items with Highest Price Variations</h2>
+      <div>
+        <label for="variation-time-range">Time Range:</label>
+        <select id="variation-time-range">
+          <option value="3600">1 Hour</option>
+          <option value="86400">1 Day</option>
+          <option value="604800">1 Week</option>
+        </select>
+        <button id="refresh-top-variations">Refresh</button>
+      </div>
+      <div id="top-variations"></div>
     </section>
   </div>
 
-  <!-- Background Music Audio (initially paused) -->
+  <!-- BACKGROUND MUSIC (initially paused) -->
   <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9f8b1101b0.mp3?filename=mystic-realm-of-minecraft-235545.mp3" loop></audio>
 
+  <!-- ====================== COMBINED JAVASCRIPT ====================== -->
   <script>
-    // Grab reference to sidebar and overlay
+    /****************
+     * SIDEBAR TOGGLE
+     ****************/
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const menuToggle = document.getElementById('menuToggle');
-    // Toggle sidebar open/close
     menuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('open');
       overlay.classList.toggle('show');
     });
-    // Clicking overlay closes sidebar
     overlay.addEventListener('click', () => {
       sidebar.classList.remove('open');
       overlay.classList.remove('show');
     });
-    // Close sidebar when a menu link is clicked (useful for mobile)
+    // Close sidebar after clicking a link (mobile-friendly)
     document.querySelectorAll('#sidebar a').forEach(link => {
       link.addEventListener('click', () => {
         sidebar.classList.remove('open');
@@ -349,274 +485,277 @@
       });
     });
 
-    // Sound toggle for background music
+    /**************************
+     * BACKGROUND MUSIC TOGGLE
+     **************************/
     const bgMusic = document.getElementById('bgMusic');
     const soundToggle = document.getElementById('soundToggle');
     soundToggle.addEventListener('click', () => {
       if (bgMusic.paused) {
-        bgMusic.volume = 0.5;   // set volume (0.0 to 1.0)
+        bgMusic.volume = 0.5;
         bgMusic.play();
-        soundToggle.textContent = '🔊';  // change icon to sound on
+        soundToggle.textContent = '🔊';
       } else {
         bgMusic.pause();
-        soundToggle.textContent = '🔇';  // change icon to muted
+        soundToggle.textContent = '🔇';
       }
     });
 
-    // Accent color value for canvas drawing (from CSS variable)
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
+    /*************************************
+     * PAGE FUNCTIONALITY (from original)
+     *************************************/
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput       = document.getElementById('item-search');
+      const suggestionsDiv    = document.getElementById('suggestions');
+      const resultDiv         = document.getElementById('result');
+      const loaderDiv         = document.getElementById('loader');
+      const priceGraphCtx     = document.getElementById('priceGraph').getContext('2d');
+      const topMarginsDiv     = document.getElementById('top-margins');
+      const profitabilityRes  = document.getElementById('profitability-result');
+      const calcProfitButton  = document.getElementById('calculate-profit');
+      const topVariationsDiv  = document.getElementById('top-variations');
+      const refreshTopVarBtn  = document.getElementById('refresh-top-variations');
+      const variationTimeSel  = document.getElementById('variation-time-range');
+      let currentItem = '';
+      let chart; // hold Chart.js instance
 
-    // Price Graph Data (dummy values) and Drawing Logic
-    const graphData = {
-      '1H': Array.from({length: 60}, () => Math.floor(Math.random()*50) + 50),  // e.g. 60 points (last 60 minutes)
-      '1D': Array.from({length: 24}, () => Math.floor(Math.random()*50) + 50),  // 24 hourly points
-      '1W': Array.from({length: 7},  () => Math.floor(Math.random()*50) + 50),  // 7 daily points
-      '1Y': Array.from({length: 12}, () => Math.floor(Math.random()*50) + 50),  // 12 monthly points
-      'ALL': Array.from({length: 30}, () => Math.floor(Math.random()*50) + 50)  // 30 generic points
-    };
-    const canvas = document.getElementById('priceChart');
-    const ctx = canvas.getContext('2d');
-    function drawGraph(range) {
-      const data = graphData[range];
-      const maxVal = Math.max(...data);
-      const minVal = Math.min(...data);
-      const len = data.length;
-      // Clear canvas
-      ctx.fillStyle = '#222';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Draw line
-      ctx.beginPath();
-      const x0 = 0;
-      const y0 = canvas.height - ((data[0] - minVal) / (maxVal - minVal || 1) * canvas.height);
-      ctx.moveTo(x0, y0);
-      ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = accentColor;
-      data.forEach((val, index) => {
-        const x = (index / (len - 1)) * canvas.width;
-        const y = canvas.height - ((val - minVal) / (maxVal - minVal || 1) * canvas.height);
-        ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-      ctx.shadowBlur = 0; // disable glow for points
-      ctx.fillStyle = accentColor;
-      // Draw points
-      data.forEach((val, index) => {
-        const x = (index / (len - 1)) * canvas.width;
-        const y = canvas.height - ((val - minVal) / (maxVal - minVal || 1) * canvas.height);
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-    }
-    // Initial graph for 1 Day
-    let currentRange = '1D';
-    drawGraph(currentRange);
-    // Handle range button clicks
-    document.querySelectorAll('.graph-controls button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // update active button styling
-        document.querySelectorAll('.graph-controls button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // draw new graph
-        currentRange = btn.getAttribute('data-range');
-        drawGraph(currentRange);
-      });
-    });
-
-    // Top Items Data (dummy values)
-    const topMargins = [
-      { item: 'Dragon Egg',       value: 50000 },
-      { item: 'Netherite Ingot',  value: 32000 },
-      { item: 'Enchanted Apple',  value: 25000 },
-      { item: 'Wither Skull',     value: 18000 },
-      { item: 'Totem of Undying', value: 15000 },
-      { item: 'Elytra',           value: 12000 },
-      { item: 'Beacon',           value: 10000 },
-      { item: 'Shulker Shell',    value:  8000 },
-      { item: 'Diamond Block',    value:  6000 },
-      { item: 'Heart of the Sea', value:  5000 }
-    ];
-    const topVariations = {
-      '1H': [
-        { item: 'Netherite Ingot',  value: '3%' },
-        { item: 'Enchanted Apple',  value: '2.5%' },
-        { item: 'Beacon',          value: '2%' },
-        { item: 'Dragon Egg',      value: '1.8%' },
-        { item: 'Elytra',          value: '1.5%' },
-        { item: 'Totem of Undying',value: '1.4%' },
-        { item: 'Wither Skull',    value: '1.2%' },
-        { item: 'Heart of the Sea',value: '1%' },
-        { item: 'Shulker Shell',   value: '0.8%' },
-        { item: 'Diamond Block',   value: '0.5%' }
-      ],
-      '1D': [
-        { item: 'Dragon Egg',       value: '15%' },
-        { item: 'Netherite Ingot',  value: '12%' },
-        { item: 'Elytra',           value: '10%' },
-        { item: 'Enchanted Apple',  value: '9%' },
-        { item: 'Beacon',           value: '8%' },
-        { item: 'Totem of Undying', value: '7%' },
-        { item: 'Wither Skull',     value: '6%' },
-        { item: 'Heart of the Sea', value: '5%' },
-        { item: 'Diamond Block',    value: '4%' },
-        { item: 'Shulker Shell',    value: '3%' }
-      ],
-      '1W': [
-        { item: 'Dragon Egg',       value: '30%' },
-        { item: 'Netherite Ingot',  value: '25%' },
-        { item: 'Elytra',           value: '20%' },
-        { item: 'Enchanted Apple',  value: '18%' },
-        { item: 'Beacon',           value: '15%' },
-        { item: 'Totem of Undying', value: '12%' },
-        { item: 'Wither Skull',     value: '10%' },
-        { item: 'Heart of the Sea', value: '8%' },
-        { item: 'Diamond Block',    value: '6%' },
-        { item: 'Shulker Shell',    value: '5%' }
-      ],
-      '1Y': [
-        { item: 'Dragon Egg',       value: '90%' },
-        { item: 'Netherite Ingot',  value: '75%' },
-        { item: 'Elytra',           value: '60%' },
-        { item: 'Enchanted Apple',  value: '55%' },
-        { item: 'Beacon',           value: '50%' },
-        { item: 'Totem of Undying', value: '45%' },
-        { item: 'Wither Skull',     value: '40%' },
-        { item: 'Heart of the Sea', value: '30%' },
-        { item: 'Diamond Block',    value: '25%' },
-        { item: 'Shulker Shell',    value: '20%' }
-      ],
-      'ALL': [
-        { item: 'Dragon Egg',       value: '150%' },
-        { item: 'Netherite Ingot',  value: '120%' },
-        { item: 'Elytra',           value: '100%' },
-        { item: 'Enchanted Apple',  value: '90%' },
-        { item: 'Beacon',           value: '80%' },
-        { item: 'Totem of Undying', value: '70%' },
-        { item: 'Wither Skull',     value: '60%' },
-        { item: 'Heart of the Sea', value: '50%' },
-        { item: 'Diamond Block',    value: '40%' },
-        { item: 'Shulker Shell',    value: '30%' }
-      ]
-    };
-
-    // Render Top Margins list
-    const marginListEl = document.getElementById('marginList');
-    function renderMargins(list) {
-      marginListEl.innerHTML = ''; // clear current list
-      list.forEach(entry => {
-        const li = document.createElement('li');
-        li.innerHTML = entry.item + ' <span class="value">' + entry.value + ' coins</span>';
-        marginListEl.appendChild(li);
-      });
-    }
-    // Initial render (assuming topMargins is already in descending order)
-    renderMargins(topMargins);
-
-    // Sorting toggle for margins
-    let marginsAscending = false;
-    const sortMarginBtn = document.getElementById('sortMarginBtn');
-    sortMarginBtn.addEventListener('click', () => {
-      marginsAscending = !marginsAscending;
-      if (marginsAscending) {
-        // sort ascending by value
-        topMargins.sort((a, b) => a.value - b.value);
-        sortMarginBtn.textContent = 'Sort Descending';
-      } else {
-        // sort descending
-        topMargins.sort((a, b) => b.value - a.value);
-        sortMarginBtn.textContent = 'Sort Ascending';
+      function showLoader(show) {
+        loaderDiv.style.display = show ? 'block' : 'none';
       }
-      renderMargins(topMargins);
-    });
 
-    // Render Top Variations list for a given range
-    const variationListEl = document.getElementById('variationList');
-    function renderVariations(range) {
-      variationListEl.innerHTML = '';
-      topVariations[range].forEach(entry => {
-        const li = document.createElement('li');
-        li.innerHTML = entry.item + ' <span class="value">' + entry.value + '</span>';
-        variationListEl.appendChild(li);
+      /***************
+       * Autocomplete
+       ***************/
+      async function fetchSuggestions(query) {
+        try {
+          const response = await fetch(`/autocomplete?query=${encodeURIComponent(query)}`);
+          if (!response.ok) throw new Error('Failed to fetch suggestions.');
+          const items = await response.json();
+          suggestionsDiv.innerHTML = '';
+          items.forEach(item => {
+            const suggestion = document.createElement('div');
+            suggestion.textContent = item;
+            suggestion.addEventListener('click', () => {
+              searchInput.value = item;
+              suggestionsDiv.innerHTML = '';
+            });
+            suggestionsDiv.appendChild(suggestion);
+          });
+        } catch (error) {
+          console.error('Autocomplete error:', error);
+        }
+      }
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+          suggestionsDiv.innerHTML = '';
+          return;
+        }
+        fetchSuggestions(query);
       });
-    }
-    // Initial render for default selected range (1D)
-    const variationSelect = document.getElementById('variationRangeSelect');
-    renderVariations(variationSelect.value);
-    // Update on range change
-    variationSelect.addEventListener('change', () => {
-      renderVariations(variationSelect.value);
-    });
 
-    // Search functionality: filter items in both lists
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const searchResults = document.getElementById('searchResults');
-    function performSearch() {
-      const query = searchInput.value.trim().toLowerCase();
-      searchResults.innerHTML = '';
-      if (!query) return;
-      // Find matches in margins list
-      const marginMatches = topMargins.filter(entry => entry.item.toLowerCase().includes(query));
-      // Find matches in variations (across all ranges)
-      const variationMatches = [];
-      for (const range in topVariations) {
-        topVariations[range].forEach(entry => {
-          if (entry.item.toLowerCase().includes(query)) {
-            variationMatches.push({ item: entry.item, value: entry.value, range: range });
+      /*********************
+       * Fetch Graph Data
+       *********************/
+      async function fetchGraphData(itemName, timeRange = 'all') {
+        try {
+          showLoader(true);
+          const url = `/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Failed to fetch graph data.');
+          const history = await response.json();
+          const labels = history.map(h => new Date(h.timestamp * 1000).toLocaleTimeString());
+          const buyPrices = history.map(h => h.buy_price);
+          const sellPrices = history.map(h => h.sell_price);
+
+          if (chart) chart.destroy(); // destroy old Chart.js instance
+          chart = new Chart(priceGraphCtx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Buy Price',
+                  data: buyPrices,
+                  borderColor: '#00ccff',
+                  fill: false,
+                  tension: 0.3
+                },
+                {
+                  label: 'Sell Price',
+                  data: sellPrices,
+                  borderColor: '#ff5733',
+                  fill: false,
+                  tension: 0.3
+                }
+              ]
+            },
+            options: {
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}`
+                  }
+                },
+                legend: {
+                  labels: {
+                    color: '#fff'
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#fff' },
+                  grid: { color: '#555' }
+                },
+                y: {
+                  ticks: { color: '#fff' },
+                  grid: { color: '#555' }
+                }
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Graph error:', error);
+          resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      /*********************
+       * Fetch Top Margins
+       *********************/
+      async function fetchTopMargins() {
+        const sortBy = document.getElementById('sort-by').value;
+        const order  = document.getElementById('order').value;
+        try {
+          showLoader(true);
+          const response = await fetch(`/top-margins?sort_by=${sortBy}&order=${order}`);
+          if (!response.ok) throw new Error('Failed to fetch top margins.');
+          const items = await response.json();
+          topMarginsDiv.innerHTML = items.map(item => `
+            <div class="item-card">
+              <p><span>Item:</span> ${item.item_id}</p>
+              <p><span>Margin:</span> ${item.margin}</p>
+              <p><span>Buy Price:</span> ${item.buy_price}</p>
+              <p><span>Sell Price:</span> ${item.sell_price}</p>
+              <p><span>Demand:</span> ${item.demand ?? 'N/A'}</p>
+              <p><span>Supply:</span> ${item.supply ?? 'N/A'}</p>
+            </div>
+          `).join('');
+        } catch (error) {
+          console.error('Top margins error:', error);
+          topMarginsDiv.innerHTML = '<p>Error loading top items. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      /*****************************
+       * Search & Fetch Item Details
+       *****************************/
+      document.getElementById('search-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const itemName = searchInput.value.trim();
+        if (!itemName) return;
+        currentItem = itemName;
+        try {
+          showLoader(true);
+          const response = await fetch(`/search?item=${encodeURIComponent(itemName)}`);
+          if (!response.ok) throw new Error('Failed to fetch item details.');
+          const data = await response.json();
+          resultDiv.innerHTML = `
+            <p><strong>Item:</strong> ${data.item_id}</p>
+            <p><strong>Buy Price:</strong> ${data.buy_price ?? 'N/A'}</p>
+            <p><strong>Sell Price:</strong> ${data.sell_price ?? 'N/A'}</p>
+            <p><strong>Margin:</strong> ${data.margin ?? 'N/A'}</p>
+            <p><strong>Demand:</strong> ${data.demand ?? 'N/A'}</p>
+            <p><strong>Supply:</strong> ${data.supply ?? 'N/A'}</p>
+          `;
+          fetchGraphData(itemName); // default timeRange = 'all'
+        } catch (error) {
+          console.error('Item details error:', error);
+          resultDiv.innerHTML = '<p>Error loading item details. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      });
+
+      /************************************
+       * Profitability Calculation Handler
+       ************************************/
+      calcProfitButton.addEventListener('click', async () => {
+        const coins = parseFloat(document.getElementById('coins').value);
+        const difficulty = parseFloat(document.getElementById('difficulty').value);
+        try {
+          showLoader(true);
+          const response = await fetch(`/profitability?coins=${coins}&difficulty=${difficulty}`);
+          if (!response.ok) throw new Error('Failed to fetch profitability.');
+          const results = await response.json();
+          profitabilityRes.innerHTML = results.map(r => `
+            <div class="item-card">
+              <p><strong>Item:</strong> ${r.item_id}</p>
+              <p><strong>Profit per Minute:</strong> ${r.profit_per_minute.toFixed(2)}</p>
+              <p><strong>Profit per Hour:</strong> ${r.profit_per_hour.toFixed(2)}</p>
+            </div>
+          `).join('');
+        } catch (error) {
+          console.error('Profitability error:', error);
+          profitabilityRes.innerHTML = '<p>Error calculating profitability. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      });
+
+      /**********************
+       * Graph Time Ranges
+       **********************/
+      document.querySelectorAll('.time-range-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const timeRange = this.getAttribute('data-range');
+          if (currentItem) {
+            fetchGraphData(currentItem, timeRange);
           }
         });
-      }
-      if (marginMatches.length > 0) {
-        const cat = document.createElement('div');
-        cat.className = 'result-category';
-        cat.textContent = 'Matches in Highest Margins:';
-        searchResults.appendChild(cat);
-        const ul = document.createElement('ul');
-        marginMatches.forEach(entry => {
-          const li = document.createElement('li');
-          li.textContent = `${entry.item} (Margin: ${entry.value} coins)`;
-          ul.appendChild(li);
-        });
-        searchResults.appendChild(ul);
-      }
-      if (variationMatches.length > 0) {
-        const cat = document.createElement('div');
-        cat.className = 'result-category';
-        cat.textContent = 'Matches in Price Variations:';
-        searchResults.appendChild(cat);
-        const ul = document.createElement('ul');
-        variationMatches.forEach(entry => {
-          const li = document.createElement('li');
-          li.textContent = `${entry.item} (Variation: ${entry.value} in ${entry.range})`;
-          ul.appendChild(li);
-        });
-        searchResults.appendChild(ul);
-      }
-      if (marginMatches.length === 0 && variationMatches.length === 0) {
-        searchResults.textContent = 'No items found.';
-      }
-    }
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') performSearch();
-    });
+      });
 
-    // Profitability Calculator logic
-    const coinsInput = document.getElementById('coinsInput');
-    const diffInput = document.getElementById('diffInput');
-    const calcBtn = document.getElementById('calcBtn');
-    const profitResult = document.getElementById('profitResult');
-    calcBtn.addEventListener('click', () => {
-      const coins = parseFloat(coinsInput.value) || 0;
-      const diff  = parseFloat(diffInput.value) || 0;
-      const profit = coins * diff;
-      profitResult.textContent = "Estimated Profit: " + profit.toFixed(2);
-      // Trigger a flash animation for feedback
-      profitResult.classList.remove('flash');
-      void profitResult.offsetWidth;  // reflow trick to restart CSS animation
-      profitResult.classList.add('flash');
+      /**********************
+       * Refresh Top Margins
+       **********************/
+      document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
+      // Auto-refresh top margins every 60 seconds
+      setInterval(fetchTopMargins, 60000);
+      fetchTopMargins();
+
+      /**********************
+       * Fetch Top Variations
+       **********************/
+      async function fetchTopVariations() {
+        const timeRange = variationTimeSel.value;
+        try {
+          showLoader(true);
+          const response = await fetch(`/top-variations?time_range=${timeRange}`);
+          if (!response.ok) throw new Error("Failed to fetch top variations.");
+          const items = await response.json();
+          topVariationsDiv.innerHTML = items.map(item => `
+            <div class="item-card">
+              <p><span>Item:</span> ${item.item_id}</p>
+              <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
+              <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
+              <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
+              <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
+            </div>
+          `).join('');
+        } catch (error) {
+          console.error('Top variations error:', error);
+          topVariationsDiv.innerHTML = '<p>Error loading top variations. Please try again later.</p>';
+        } finally {
+          showLoader(false);
+        }
+      }
+      refreshTopVarBtn.addEventListener('click', fetchTopVariations);
+      fetchTopVariations();
     });
   </script>
 </body>
