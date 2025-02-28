@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BZTracker - Search</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <div id="particle-container"></div>
+
+  <header>
+    <h1>BZTracker</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="search.html" class="active">Search</a></li>
+        <li><a href="graph.html">Price Graph</a></li>
+        <li><a href="topmargins.html">Top Margins</a></li>
+        <li><a href="profitability.html">Profitability</a></li>
+        <li><a href="topvariations.html">Top Variations</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Search Items</h2>
+      <!-- Replace or integrate your original search form & logic here -->
+      <form id="search-form" class="flex-column">
+        <input type="text" id="item-search" placeholder="Search for an item..." autocomplete="off" />
+        <div id="suggestions"></div>
+        <button type="submit">Search</button>
+      </form>
+      <div id="loader" style="display:none;"></div>
+      <div id="result"></div>
+    </section>
+  </main>
+
+  <script src="particles.js"></script>
+  <!-- Your existing search JS code (or inline script) goes here. Example: -->
+  <script>
+    // Example fetch call for autocomplete
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('item-search');
+      const suggestionsDiv = document.getElementById('suggestions');
+      const resultDiv = document.getElementById('result');
+
+      searchInput.addEventListener('input', () => {
+        // ... call your /autocomplete endpoint
+      });
+
+      // ... etc ...
+    });
+  </script>
+</body>
+</html>
