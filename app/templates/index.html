@@ -6,8 +6,6 @@
   <title>BZTracker</title>
   <!-- Load Chart.js (as in your original code) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  <!-- Load Chart.js Zoom Plugin for advanced zoom/pan functionality -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js" defer></script>
   <style>
     /***********************************************
      *               THEME VARIABLES
@@ -279,11 +277,6 @@
       margin-bottom: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
-    /* Trendline toggle container */
-    #trendline-toggle-container {
-      text-align: center;
-      margin-top: 10px;
-    }
 
     /***********************************************
      *         TOP MARGINS & ITEMS
@@ -394,7 +387,7 @@
   <!-- Particle Container (Canvas goes inside here) -->
   <div id="particle-container"></div>
 
-  <!-- ===== SIDEBAR TOGGLE & SOUND TOGGLES ===== -->
+  <!-- ===== SIDEBAR TOGGLE & SOUND TOGGLE ===== -->
   <button id="menuToggle">☰</button>
   <button id="soundToggle">🔇</button>
 
@@ -438,13 +431,6 @@
           <button class="time-range-btn" data-range="1w">1 Week</button>
           <button class="time-range-btn" data-range="1y">1 Year</button>
           <button class="time-range-btn" data-range="all">All Time</button>
-        </div>
-        <!-- Trendline Toggle Control -->
-        <div id="trendline-toggle-container">
-          <label>
-            <input type="checkbox" id="toggleTrendlines" checked>
-            Show Trendlines
-          </label>
         </div>
       </section>
 
@@ -533,6 +519,7 @@
       sidebar.classList.remove('open');
       overlay.classList.remove('show');
     });
+    // Close sidebar after clicking a link
     document.querySelectorAll('#sidebar a').forEach(link => {
       link.addEventListener('click', () => {
         sidebar.classList.remove('open');
@@ -561,6 +548,7 @@
      *********************************************************/
     const bodyEl = document.body;
     const themeSelect = document.getElementById('theme-select');
+    // Default is "dark-theme"
     themeSelect.value = 'dark';
     themeSelect.addEventListener('change', () => {
       if (themeSelect.value === 'light') {
@@ -578,34 +566,45 @@
     (function() {
       const container = document.getElementById('particle-container');
       if (!container) return;
+
+      // Create a full-screen canvas inside #particle-container
       const canvas = document.createElement('canvas');
       canvas.style.width = '100%';
       canvas.style.height = '100%';
       canvas.style.display = 'block';
       container.appendChild(canvas);
+
       const ctx = canvas.getContext('2d');
       let width = window.innerWidth;
       let height = window.innerHeight;
       canvas.width = width;
       canvas.height = height;
+
       window.addEventListener('resize', () => {
         width = window.innerWidth;
         height = window.innerHeight;
         canvas.width = width;
         canvas.height = height;
       });
+
       class Particle {
-        constructor() { this.reset(); }
+        constructor() {
+          this.reset();
+        }
         reset() {
           this.x = Math.random() * width;
           this.y = Math.random() * height;
+          // Gentle drift velocities
           this.vx = (Math.random() - 0.5) * 0.4;
           this.vy = (Math.random() - 0.5) * 0.4;
           this.size = 2 + Math.random() * 3;
+          // We'll read the theme-based color from a CSS variable each time we draw
+          // for an up-to-date theme color, or set it once here.
         }
         update() {
           this.x += this.vx;
           this.y += this.vy;
+          // Wrap around
           if (this.x < 0)  this.x = width;
           if (this.x > width)  this.x = 0;
           if (this.y < 0)  this.y = height;
@@ -614,51 +613,74 @@
         draw(shiftY) {
           ctx.beginPath();
           ctx.arc(this.x, this.y + shiftY, this.size, 0, 2 * Math.PI);
+          // get current particle color from the theme variable:
           const themeColor = getComputedStyle(document.body).getPropertyValue('--particle-color').trim();
           ctx.fillStyle = themeColor || 'rgba(138,43,226,0.5)';
           ctx.fill();
         }
       }
+
       const particles = [];
-      const NUM_PARTICLES = 40;
-      for (let i = 0; i < NUM_PARTICLES; i++) { particles.push(new Particle()); }
-      let mouseX = width / 2, mouseY = height / 2, scrollY = 0;
-      window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-      window.addEventListener('scroll', () => { scrollY = window.scrollY; });
+      const NUM_PARTICLES = 40; // Adjust as needed
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        particles.push(new Particle());
+      }
+
+      // Cursor & scroll
+      let mouseX = width / 2;
+      let mouseY = height / 2;
+      let scrollY = 0;
+
+      window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+      window.addEventListener('scroll', () => {
+        scrollY = window.scrollY;
+      });
+
       function animate() {
         ctx.clearRect(0, 0, width, height);
+
         particles.forEach((p) => {
           p.update();
+
+          // Repel from the cursor
           const dx = p.x - mouseX;
           const dy = (p.y - mouseY);
           const dist = Math.sqrt(dx*dx + dy*dy);
           const repelRadius = 80;
           if (dist < repelRadius) {
             const angle = Math.atan2(dy, dx);
-            const force = (repelRadius - dist) / repelRadius;
+            const force = (repelRadius - dist) / repelRadius; // 0..1
             p.x += Math.cos(angle) * force * 2;
             p.y += Math.sin(angle) * force * 2;
           }
+
+          // Apply a small parallax shift based on scroll
           const parallaxFactor = 0.05;
           const shiftY = scrollY * parallaxFactor;
+
+          // Draw with final position
           p.draw(shiftY);
         });
+
         requestAnimationFrame(animate);
       }
       animate();
     })();
 
     /*********************************************************
-     * 5) ORIGINAL FUNCTIONALITY (Search, Graph, etc.)
+     * 5) ORIGINAL FUNCTIONALITY (Your prior code)
      *********************************************************/
     document.addEventListener('DOMContentLoaded', () => {
-      const searchInput    = document.getElementById('item-search');
-      const suggestionsDiv = document.getElementById('suggestions');
-      const resultDiv      = document.getElementById('result');
-      const loaderDiv      = document.getElementById('loader');
-      const priceGraphCtx  = document.getElementById('priceGraph').getContext('2d');
-      const topMarginsDiv  = document.getElementById('top-margins');
-      const profitabilityRes = document.getElementById('profitability-result');
+      const searchInput       = document.getElementById('item-search');
+      const suggestionsDiv    = document.getElementById('suggestions');
+      const resultDiv         = document.getElementById('result');
+      const loaderDiv         = document.getElementById('loader');
+      const priceGraphCtx     = document.getElementById('priceGraph').getContext('2d');
+      const topMarginsDiv     = document.getElementById('top-margins');
+      const profitabilityRes  = document.getElementById('profitability-result');
       const calcProfitButton  = document.getElementById('calculate-profit');
       const topVariationsDiv  = document.getElementById('top-variations');
       const refreshTopVarBtn  = document.getElementById('refresh-top-variations');
@@ -701,9 +723,9 @@
         fetchSuggestions(query);
       });
 
-      /**************************************
-       * ORIGINAL fetchGraphData (Unchanged)
-       **************************************/
+      /***********************
+       * FETCH GRAPH DATA
+       ***********************/
       async function fetchGraphData(itemName, timeRange = 'all') {
         try {
           showLoader(true);
@@ -714,126 +736,8 @@
           const labels = history.map(h => new Date(h.timestamp * 1000).toLocaleTimeString());
           const buyPrices = history.map(h => h.buy_price);
           const sellPrices = history.map(h => h.sell_price);
-          if (chart) chart.destroy();
-          chart = new Chart(priceGraphCtx, {
-            type: 'line',
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Buy Price',
-                  data: buyPrices,
-                  borderColor: '#00ccff',
-                  fill: false,
-                  tension: 0.3
-                },
-                {
-                  label: 'Sell Price',
-                  data: sellPrices,
-                  borderColor: '#ff5733',
-                  fill: false,
-                  tension: 0.3
-                }
-              ]
-            },
-            options: {
-              plugins: {
-                tooltip: {
-                  callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}` }
-                },
-                legend: { labels: { color: '#fff' } }
-              },
-              scales: {
-                x: { ticks: { color: '#fff' }, grid: { color: '#555' } },
-                y: { ticks: { color: '#fff' }, grid: { color: '#555' } }
-              }
-            }
-          });
-        } catch (error) {
-          console.error('Graph error:', error);
-          resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      }
 
-      /************************************************************
-       * ADVANCED fetchGraphDataAdvanced WITH TOGGLEABLE TRENDLINES
-       ************************************************************/
-      async function fetchGraphDataAdvanced(itemName, timeRange = 'all') {
-        try {
-          showLoader(true);
-          const url = `/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Failed to fetch graph data.');
-          const history = await response.json();
-          const labels = history.map(h => new Date(h.timestamp * 1000).toLocaleTimeString());
-          const buyPrices = history.map(h => h.buy_price);
-          const sellPrices = history.map(h => h.sell_price);
-          
-          // Helper: Compute linear regression trendline
-          function computeTrendline(data) {
-            const n = data.length;
-            if (n === 0) return [];
-            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-            for (let i = 0; i < n; i++) {
-              sumX += i;
-              sumY += data[i];
-              sumXY += i * data[i];
-              sumXX += i * i;
-            }
-            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-            const intercept = (sumY - slope * sumX) / n;
-            return Array.from({ length: n }, (_, i) => intercept + slope * i);
-          }
-          // Helper: Compute simple moving average (window = 5)
-          function computeMovingAverage(data, windowSize = 5) {
-            const result = [];
-            for (let i = 0; i < data.length; i++) {
-              let start = Math.max(0, i - windowSize + 1);
-              let sum = 0, count = 0;
-              for (let j = start; j <= i; j++) { sum += data[j]; count++; }
-              result.push(sum / count);
-            }
-            return result;
-          }
-          const trendlineBuy = computeTrendline(buyPrices);
-          const trendlineSell = computeTrendline(sellPrices);
-          const movingAvgBuy = computeMovingAverage(buyPrices, 5);
-          const movingAvgSell = computeMovingAverage(sellPrices, 5);
-          
-          // Create gradients for main datasets
-          const canvas = priceGraphCtx.canvas;
-          const gradientBuy = priceGraphCtx.createLinearGradient(0, 0, 0, canvas.height);
-          gradientBuy.addColorStop(0, 'rgba(0, 204, 255, 0.5)');
-          gradientBuy.addColorStop(1, 'rgba(0, 204, 255, 0)');
-          const gradientSell = priceGraphCtx.createLinearGradient(0, 0, 0, canvas.height);
-          gradientSell.addColorStop(0, 'rgba(255, 87, 51, 0.5)');
-          gradientSell.addColorStop(1, 'rgba(255, 87, 51, 0)');
-          
           if (chart) chart.destroy();
-          
-          // Custom vertical crosshair plugin
-          const verticalLinePlugin = {
-            id: 'verticalLinePlugin',
-            afterDraw: (chart, args, options) => {
-              if (chart.tooltip && chart.tooltip._active && chart.tooltip._active.length) {
-                const ctx = chart.ctx;
-                ctx.save();
-                const activePoint = chart.tooltip._active[0];
-                ctx.beginPath();
-                ctx.moveTo(activePoint.element.x, chart.chartArea.top);
-                ctx.lineTo(activePoint.element.x, chart.chartArea.bottom);
-                ctx.lineWidth = options.lineWidth || 1;
-                ctx.strokeStyle = options.lineColor || 'rgba(255, 255, 255, 0.3)';
-                ctx.stroke();
-                ctx.restore();
-              }
-            }
-          };
-          if (!Chart.registry.getPlugin('verticalLinePlugin')) { Chart.register(verticalLinePlugin); }
-          
-          // Build the advanced chart with additional datasets
           chart = new Chart(priceGraphCtx, {
             type: 'line',
             data: {
@@ -843,126 +747,43 @@
                   label: 'Buy Price',
                   data: buyPrices,
                   borderColor: '#00ccff',
-                  backgroundColor: gradientBuy,
-                  fill: true,
-                  tension: 0.3,
-                  pointRadius: 4,
-                  pointHoverRadius: 7,
+                  fill: false,
+                  tension: 0.3
                 },
                 {
                   label: 'Sell Price',
                   data: sellPrices,
                   borderColor: '#ff5733',
-                  backgroundColor: gradientSell,
-                  fill: true,
-                  tension: 0.3,
-                  pointRadius: 4,
-                  pointHoverRadius: 7,
-                },
-                {
-                  label: 'Buy Trendline',
-                  data: trendlineBuy,
-                  borderColor: '#00ccff',
-                  borderDash: [10, 5],
                   fill: false,
-                  tension: 0,
-                  pointRadius: 0,
-                },
-                {
-                  label: 'Sell Trendline',
-                  data: trendlineSell,
-                  borderColor: '#ff5733',
-                  borderDash: [10, 5],
-                  fill: false,
-                  tension: 0,
-                  pointRadius: 0,
-                },
-                {
-                  label: 'Buy Moving Avg (5)',
-                  data: movingAvgBuy,
-                  borderColor: '#0077aa',
-                  borderDash: [5, 5],
-                  fill: false,
-                  tension: 0,
-                  pointRadius: 0,
-                },
-                {
-                  label: 'Sell Moving Avg (5)',
-                  data: movingAvgSell,
-                  borderColor: '#aa3300',
-                  borderDash: [5, 5],
-                  fill: false,
-                  tension: 0,
-                  pointRadius: 0,
+                  tension: 0.3
                 }
               ]
             },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: { mode: 'nearest', intersect: false },
-              animation: { duration: 1500, easing: 'easeOutQuart' },
               plugins: {
                 tooltip: {
-                  callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}` },
-                  backgroundColor: 'rgba(0,0,0,0.8)',
-                  titleColor: getComputedStyle(document.body).getPropertyValue('--text-color').trim(),
-                  bodyColor: getComputedStyle(document.body).getPropertyValue('--text-color').trim(),
-                  displayColors: false,
-                },
-                legend: {
-                  labels: { color: getComputedStyle(document.body).getPropertyValue('--text-color').trim() },
-                  onClick: (e, legendItem, legend) => {
-                    const index = legendItem.datasetIndex;
-                    const ci = legend.chart;
-                    ci.toggleDataVisibility(index);
-                    ci.update();
+                  callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}`
                   }
                 },
-                zoom: {
-                  pan: { enabled: true, mode: 'x', speed: 10 },
-                  zoom: { enabled: true, mode: 'x', wheel: { enabled: true }, pinch: { enabled: true } }
-                },
-                verticalLinePlugin: { lineColor: 'rgba(255, 255, 255, 0.3)', lineWidth: 1 }
+                legend: {
+                  labels: {
+                    color: '#fff'
+                  }
+                }
               },
               scales: {
                 x: {
-                  ticks: {
-                    color: getComputedStyle(document.body).getPropertyValue('--text-color').trim(),
-                    maxRotation: 0,
-                    autoSkip: true,
-                    maxTicksLimit: 10,
-                  },
-                  grid: {
-                    color: getComputedStyle(document.body).getPropertyValue('--sidebar-bg').trim(),
-                    borderDash: [5, 5]
-                  }
+                  ticks: { color: '#fff' },
+                  grid: { color: '#555' }
                 },
                 y: {
-                  ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-color').trim() },
-                  grid: {
-                    color: getComputedStyle(document.body).getPropertyValue('--sidebar-bg').trim(),
-                    borderDash: [5, 5]
-                  }
+                  ticks: { color: '#fff' },
+                  grid: { color: '#555' }
                 }
               }
-            },
-            plugins: [verticalLinePlugin]
+            }
           });
-          // Reset zoom on double-click
-          canvas.addEventListener('dblclick', () => { if (chart.resetZoom) chart.resetZoom(); });
-          // Attach event listener for the trendline toggle checkbox
-          const trendlineToggle = document.getElementById('toggleTrendlines');
-          if (trendlineToggle) {
-            trendlineToggle.addEventListener('change', () => {
-              chart.data.datasets.forEach(dataset => {
-                if (dataset.label.includes("Trendline")) {
-                  dataset.hidden = !trendlineToggle.checked;
-                }
-              });
-              chart.update();
-            });
-          }
         } catch (error) {
           console.error('Graph error:', error);
           resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
@@ -1021,8 +842,7 @@
             <p><strong>Demand:</strong> ${data.demand ?? 'N/A'}</p>
             <p><strong>Supply:</strong> ${data.supply ?? 'N/A'}</p>
           `;
-          // Use the advanced graphing function with toggleable trendlines
-          fetchGraphDataAdvanced(itemName);
+          fetchGraphData(itemName);
         } catch (error) {
           console.error('Item details error:', error);
           resultDiv.innerHTML = '<p>Error loading item details. Please try again later.</p>';
@@ -1064,8 +884,7 @@
         btn.addEventListener('click', function() {
           const timeRange = this.getAttribute('data-range');
           if (currentItem) {
-            // Use the advanced function with toggleable trendlines
-            fetchGraphDataAdvanced(currentItem, timeRange);
+            fetchGraphData(currentItem, timeRange);
           }
         });
       });
@@ -1074,7 +893,7 @@
        * TOP MARGINS REFRESH
        ****************************/
       document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
-      setInterval(fetchTopMargins, 60000);
+      setInterval(fetchTopMargins, 60000); // auto-refresh every 60s
       fetchTopMargins();
 
       /****************************
