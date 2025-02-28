@@ -22,7 +22,6 @@
     :root {
       --transition-speed: 0.3s;
       --font-family: "Roboto", sans-serif;
-      /* Particle counts, etc. can go here if desired. */
     }
 
     /* === Dark Theme (Crying Obsidian) === */
@@ -64,8 +63,7 @@
       transition: background-color var(--transition-speed),
                   color var(--transition-speed);
       overflow-x: hidden; /* prevent sideways scroll from particle container */
-      /* We'll add an animated gradient or background pattern for each theme via separate keyframes. */
-      position: relative; /* to anchor the particle container */
+      position: relative; /* anchor for the particle container */
     }
 
     /***********************************************
@@ -73,26 +71,16 @@
      ***********************************************/
     #particle-container {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none; /* so clicks pass through to UI elements */
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
+      pointer-events: none; /* so clicks pass through */
+      z-index: 0;           /* behind main content */
       overflow: hidden;
-      z-index: 0;           /* behind main content, but above background color */
     }
-    /* Each .particle is absolutely positioned and animated. */
-    .particle {
-      position: absolute;
-      width: 15px; height: 15px;
-      background-color: var(--particle-color); /* color changes with theme */
-      border-radius: 50%;
-      animation: floatParticles 10s linear infinite;
-      /* We will set custom positions & delays per particle inline or with JS. */
-    }
-    @keyframes floatParticles {
-      0%   { transform: translateY(0)       scale(1);   }
-      50%  { transform: translateY(-50px)   scale(1.3); }
-      100% { transform: translateY(0)       scale(1);   }
-    }
+
+    /* We no longer use .particle divs; a <canvas> will be placed here instead. */
 
     /***********************************************
      *           SIDEBAR & MENU / SOUND TOGGLES
@@ -144,7 +132,8 @@
     }
     #sidebar ul {
       list-style: none;
-      margin: 0; padding: 0;
+      margin: 0; 
+      padding: 0;
     }
     #sidebar li {
       margin: 15px 0;
@@ -159,14 +148,16 @@
       text-decoration: none;
     }
     #sidebar a:hover {
-      background: rgba(138, 43, 226, 0.2); /* replaced dynamically in Light theme? We'll rely on slight tinted highlight. */
+      background: rgba(138, 43, 226, 0.2); /* tinted highlight (updated by theme) */
       text-shadow: 0 0 5px var(--accent-color);
     }
-    /* Overlay behind sidebar (dim the rest of the page) */
+
+    /* Overlay behind sidebar */
     #overlay {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%; 
+      height: 100%;
       background: rgba(0,0,0,0.5);
       display: none;
       z-index: 1001;
@@ -183,7 +174,7 @@
       margin: 0 auto;
       padding: 70px 20px 40px;
       position: relative;
-      z-index: 10; /* place it above the particles */
+      z-index: 10; /* above the particles */
     }
     section {
       background: var(--card-bg);
@@ -211,7 +202,8 @@
       border: 6px solid #999;
       border-top: 6px solid var(--accent-color);
       border-radius: 50%;
-      width: 35px; height: 35px;
+      width: 35px; 
+      height: 35px;
       animation: spin 1s linear infinite;
       margin: 0 auto;
     }
@@ -391,8 +383,8 @@
   </style>
 </head>
 
-<body class="dark-theme"> <!-- default to dark theme -->
-  <!-- ===== PARTICLE CONTAINER (for both themes) ===== -->
+<body class="dark-theme">
+  <!-- Particle Container (Canvas goes inside here) -->
   <div id="particle-container"></div>
 
   <!-- ===== SIDEBAR TOGGLE & SOUND TOGGLE ===== -->
@@ -504,7 +496,7 @@
           <option value="light">Light (Ice)</option>
         </select>
       </div>
-      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme. Purple or light-blue floating particles will adjust accordingly!</p>
+      <p>Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme. Particles, colors, and accents will adjust accordingly.</p>
     </section>
   </div>
 
@@ -514,7 +506,7 @@
   <!-- ====================== COMBINED JAVASCRIPT ====================== -->
   <script>
     /*********************************************************
-     * SIDEBAR TOGGLE & OVERLAY
+     * 1) SIDEBAR TOGGLE & OVERLAY
      *********************************************************/
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
@@ -527,7 +519,7 @@
       sidebar.classList.remove('open');
       overlay.classList.remove('show');
     });
-    // Close sidebar after clicking a link (useful on mobile)
+    // Close sidebar after clicking a link
     document.querySelectorAll('#sidebar a').forEach(link => {
       link.addEventListener('click', () => {
         sidebar.classList.remove('open');
@@ -536,7 +528,7 @@
     });
 
     /*********************************************************
-     * BACKGROUND MUSIC TOGGLE
+     * 2) BACKGROUND MUSIC TOGGLE
      *********************************************************/
     const bgMusic = document.getElementById('bgMusic');
     const soundToggle = document.getElementById('soundToggle');
@@ -552,13 +544,12 @@
     });
 
     /*********************************************************
-     * THEME TOGGLE (Dark / Light)
+     * 3) THEME TOGGLE (Dark / Light)
      *********************************************************/
     const bodyEl = document.body;
     const themeSelect = document.getElementById('theme-select');
-    // Default is "dark-theme" in the <body> tag. Sync the select:
+    // Default is "dark-theme"
     themeSelect.value = 'dark';
-
     themeSelect.addEventListener('change', () => {
       if (themeSelect.value === 'light') {
         bodyEl.classList.remove('dark-theme');
@@ -570,27 +561,117 @@
     });
 
     /*********************************************************
-     * PARTICLES (Generate a few floating circles)
+     * 4) MINECRAFT-LIKE PARTICLES (Canvas, scroll + cursor)
      *********************************************************/
-    const particleContainer = document.getElementById('particle-container');
-    const totalParticles = 20; // tweak the count
-    for (let i = 0; i < totalParticles; i++) {
-      const particle = document.createElement('div');
-      particle.classList.add('particle');
-      // Random positions and animation durations:
-      const randomLeft = Math.random() * 100;  // 0 to 100%
-      const randomTop = Math.random() * 100;   // 0 to 100%
-      const randomDelay = Math.random() * 10;  // 0 to 10s
-      const randomDuration = 5 + Math.random() * 10; // between 5s and 15s
-      particle.style.left = randomLeft + "%";
-      particle.style.top = randomTop + "%";
-      particle.style.animationDuration = randomDuration + "s";
-      particle.style.animationDelay = randomDelay + "s";
-      particleContainer.appendChild(particle);
-    }
+    (function() {
+      const container = document.getElementById('particle-container');
+      if (!container) return;
+
+      // Create a full-screen canvas inside #particle-container
+      const canvas = document.createElement('canvas');
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      container.appendChild(canvas);
+
+      const ctx = canvas.getContext('2d');
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+
+      window.addEventListener('resize', () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      });
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+        reset() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          // Gentle drift velocities
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = (Math.random() - 0.5) * 0.4;
+          this.size = 2 + Math.random() * 3;
+          // We'll read the theme-based color from a CSS variable each time we draw
+          // for an up-to-date theme color, or set it once here.
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          // Wrap around
+          if (this.x < 0)  this.x = width;
+          if (this.x > width)  this.x = 0;
+          if (this.y < 0)  this.y = height;
+          if (this.y > height) this.y = 0;
+        }
+        draw(shiftY) {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y + shiftY, this.size, 0, 2 * Math.PI);
+          // get current particle color from the theme variable:
+          const themeColor = getComputedStyle(document.body).getPropertyValue('--particle-color').trim();
+          ctx.fillStyle = themeColor || 'rgba(138,43,226,0.5)';
+          ctx.fill();
+        }
+      }
+
+      const particles = [];
+      const NUM_PARTICLES = 40; // Adjust as needed
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        particles.push(new Particle());
+      }
+
+      // Cursor & scroll
+      let mouseX = width / 2;
+      let mouseY = height / 2;
+      let scrollY = 0;
+
+      window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+      window.addEventListener('scroll', () => {
+        scrollY = window.scrollY;
+      });
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+
+        particles.forEach((p) => {
+          p.update();
+
+          // Repel from the cursor
+          const dx = p.x - mouseX;
+          const dy = (p.y - mouseY);
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const repelRadius = 80;
+          if (dist < repelRadius) {
+            const angle = Math.atan2(dy, dx);
+            const force = (repelRadius - dist) / repelRadius; // 0..1
+            p.x += Math.cos(angle) * force * 2;
+            p.y += Math.sin(angle) * force * 2;
+          }
+
+          // Apply a small parallax shift based on scroll
+          const parallaxFactor = 0.05;
+          const shiftY = scrollY * parallaxFactor;
+
+          // Draw with final position
+          p.draw(shiftY);
+        });
+
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
 
     /*********************************************************
-     * ORIGINAL FUNCTIONALITY (from your prior code)
+     * 5) ORIGINAL FUNCTIONALITY (Your prior code)
      *********************************************************/
     document.addEventListener('DOMContentLoaded', () => {
       const searchInput       = document.getElementById('item-search');
