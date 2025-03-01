@@ -4,3 +4,4 @@ matplotlib
 numpy
 cachetools
 gunicorn
+psycopg2-binary

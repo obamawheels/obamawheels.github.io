@@ -1,9 +1,10 @@
+import psycopg2
+import os
 import requests
 import threading
 import time
 from collections import defaultdict, deque
 import logging
-
 
 class BazaarTracker:
     def __init__(self, update_interval=60, max_history=100, plot_queue=None):
