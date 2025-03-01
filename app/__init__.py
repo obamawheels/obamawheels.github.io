@@ -2,8 +2,7 @@ from flask import Flask
 from app.utils.cache import configure_cache, get_tracker
 from app.utils.threading import start_background_thread
 from app.routes import register_routes
-from app.utils.data_bank import init_db
-from bazaar_tracker import start_background_thread as start_data_bank_thread
+from app.utils.data_bank import init_db, start_background_thread as start_data_bank_thread
 
 def create_app():
     app = Flask(__name__)
