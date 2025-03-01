@@ -100,7 +100,8 @@ def start_background_thread():
     Start a background thread to update the tracker every minute.
     """
     tracker = BazaarTracker()
-    threading.Thread(target=tracker.update_data, daemon=True).start()
+    thread = threading.Thread(target=tracker.update_data, daemon=True).start()
+    thread.start() 
 
 
 if __name__ == "__main__":
