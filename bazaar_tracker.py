@@ -2,7 +2,7 @@ import requests
 import threading
 import time
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from collections import defaultdict, deque
 from app.utils.data_bank import save_data  # Import PostgreSQL save function
 
@@ -30,18 +30,19 @@ class BazaarTracker:
         logger.setLevel(logging.INFO)
         return logger
 
-    def get_item_data(self, item_id: str) -> Optional[Dict]:
+    def get_item_history(self, item_id: str) -> List[Dict]:
         """
-        Retrieve data for a specific item.
+        Retrieve historical data for a specific item.
 
         Args:
-            item_id (str): The ID of the item to retrieve.
+            item_id (str): The ID of the item to retrieve history for.
 
         Returns:
-            Optional[Dict]: The item's data, or None if not found.
+            List[Dict]: The item's historical data, or an empty list if not found.
         """
         with self.lock:
-            return self.data.get(item_id)
+            history = self.history.get(item_id)
+            return list(history) if history else [] # Return a list instead of a deque
 
     def update_data(self):
         """
