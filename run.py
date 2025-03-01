@@ -4,7 +4,7 @@ import time
 import threading
 from queue import Queue
 from app import create_app
-from bazaar_tracker import BazaarTracker, start_background_thread
+from bazaar_tracker import BazaarTracker
 
 app = create_app()
 
@@ -12,7 +12,6 @@ plot_queue = Queue()
 
 # Create the tracker instance with the plot queue
 tracker = BazaarTracker(plot_queue=plot_queue)
-start_background_thread()
 
 def background_data_updater():
     while True:
