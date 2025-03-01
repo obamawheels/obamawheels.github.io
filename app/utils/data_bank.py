@@ -2,7 +2,6 @@ import psycopg2
 import os
 import time
 import threading
-from bazaar_tracker import BazaarTracker
 
 # Get Heroku PostgreSQL URL
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -65,6 +64,8 @@ def fetch_all_data():
 
 # Background thread to update data periodically
 def start_background_thread():
+    from bazaar_tracker import BazaarTracker  # Import inside function to avoid circular import
+
     tracker = BazaarTracker()
 
     def background_data_updater():
