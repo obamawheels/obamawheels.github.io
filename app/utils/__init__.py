@@ -1,6 +1,5 @@
 from .cache import configure_cache, get_tracker
 from .data_bank import init_db
-from bazaar_tracker import start_background_thread
 from .tracker_helpers import (
     fetch_item_data,
     fetch_item_history,
@@ -11,7 +10,6 @@ from .tracker_helpers import (
 )
 
 init_db()
-start_background_thread()
 
 # Public API for the `utils` module
 __all__ = [
