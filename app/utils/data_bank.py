@@ -1,6 +1,7 @@
 import psycopg2
 import os
 import time
+import threading
 
 # Get Heroku PostgreSQL URL
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -61,5 +62,27 @@ def fetch_all_data():
     conn.close()
     return data
 
+# Background thread to update data periodically
+def start_background_thread():
+    from bazaar_tracker import BazaarTracker  # Import inside function to avoid circular import
+
+    tracker = BazaarTracker()
+
+    def background_data_updater():
+        while True:
+            try:
+                tracker.update_data()
+                for item_id, item_data in tracker.data.items():
+                    save_data(item_id, item_data.get("buy_price", 0), item_data.get("sell_price", 0))
+                print("Data successfully updated and saved to the database.")
+            except Exception as e:
+                print(f"Error updating data: {e}")
+            time.sleep(60)  # Wait 60 seconds before the next update
+
+    threading.Thread(target=background_data_updater, daemon=True).start()
+
 # Initialize the PostgreSQL database
 init_db()
+
+# Start the background update thread
+start_background_thread()
