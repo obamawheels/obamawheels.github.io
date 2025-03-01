@@ -38,7 +38,7 @@ class BazaarTracker:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             bazaar_data = response.json()
-            timestamp = int(time.time())
+            timestamp = time.time()
 
             with self.lock:
                 self.data = bazaar_data.get("products", {})
@@ -52,7 +52,7 @@ class BazaarTracker:
                             "buy_price": buy_price,
                             "sell_price": sell_price,
                         })
-                        save_data(item_id, buy_price, sell_price, timestamp)  # Save to PostgreSQL
+                        save_data(item_id, buy_price, sell_price)  # Save to PostgreSQL
                         self._notify_changes(item_id, buy_price, sell_price)
 
             self.logger.info(f"Data successfully updated with {len(self.data)} items.")
@@ -94,76 +94,14 @@ class BazaarTracker:
                     "new_price": sell_price,
                 })
 
-    def get_item_data(self, item_name):
-        """
-        Retrieve detailed data for a specific item.
-        """
-        with self.lock:
-            for item_id, details in self.data.items():
-                if item_name.lower() in item_id.lower():
-                    buy_price = self._get_price(details, "buy_summary") or 0.0
-                    sell_price = self._get_price(details, "sell_summary") or 0.0
-                    margin = round(buy_price - sell_price, 2)
 
-                    return {
-                        "item_id": item_id,
-                        "buy_price": buy_price,
-                        "sell_price": sell_price,
-                        "margin": margin,
-                    }
-        return None
-
-    def get_autocomplete_suggestions(self, query):
-        """
-        Return a list of item IDs matching the query.
-        """
-        with self.lock:
-            return [item_id for item_id in self.data.keys() if query in item_id.lower()][:10]
-
-    def get_item_history(self, item_name):
-        """
-        Return historical price data for graphing.
-        """
-        with self.lock:
-            for item_id, price_history in self.history.items():
-                if item_name.lower() in item_id.lower():
-                    return list(price_history)
-        return None
-
-    def get_top_margins(self, sort_by="margin", order="desc"):
-        """
-        Return the top 10 items with the highest margins.
-        """
-        with self.lock:
-            items = []
-            for item_id, details in self.data.items():
-                buy_price = self._get_price(details, "buy_summary")
-                sell_price = self._get_price(details, "sell_summary")
-
-                if buy_price is not None and sell_price is not None:
-                    margin = round(buy_price - sell_price, 2)
-                    items.append({
-                        "item_id": item_id,
-                        "buy_price": buy_price,
-                        "sell_price": sell_price,
-                        "margin": margin,
-                    })
-
-            reverse = order == "desc"
-            items.sort(key=lambda x: x.get(sort_by, 0), reverse=reverse)
-            return items[:10]
-
-
-def run_updater(tracker):
+def start_background_thread():
     """
-    Continuously update bazaar data every minute.
+    Start a background thread to update the tracker every minute.
     """
-    while True:
-        tracker.update_data()
-        time.sleep(60)
+    tracker = BazaarTracker()
+    threading.Thread(target=tracker.update_data, daemon=True).start()
 
 
 if __name__ == "__main__":
-    tracker = BazaarTracker()
-    updater_thread = threading.Thread(target=run_updater, args=(tracker,), daemon=True)
-    updater_thread.start()
+    start_background_thread()
