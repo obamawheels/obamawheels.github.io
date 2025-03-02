@@ -84,22 +84,22 @@ class BazaarTracker:
         if buy_price is None or sell_price is None:
             self.logger.warning(f"Missing price data for {item_id}: buy_price={buy_price}, sell_price={sell_price}")
 
-        if self.history[item_id]:
-            last_entry = self.history[item_id][-1]
-            if abs(last_entry["buy_price"] - buy_price) > 5:  # Example threshold
-                self.notifications.append({
-                    "item_id": item_id,
-                    "change": "Buy price change",
-                    "old_price": last_entry["buy_price"],
-                    "new_price": buy_price,
-                })
-            if abs(last_entry["sell_price"] - sell_price) > 5:
-                self.notifications.append({
-                    "item_id": item_id,
-                    "change": "Sell price change",
-                    "old_price": last_entry["sell_price"],
-                    "new_price": sell_price,
-                })
+        #if self.history[item_id]:
+        #    last_entry = self.history[item_id][-1]
+        #    if abs(last_entry["buy_price"] - buy_price) > 5:  # Example threshold
+        #        self.notifications.append({
+        #            "item_id": item_id,
+        #            "change": "Buy price change",
+        #            "old_price": last_entry["buy_price"],
+        #            "new_price": buy_price,
+        #        })
+        #    if abs(last_entry["sell_price"] - sell_price) > 5:
+        #        self.notifications.append({
+        #            "item_id": item_id,
+        #            "change": "Sell price change",
+        #            "old_price": last_entry["sell_price"],
+        #            "new_price": sell_price,
+        #        })
 
     def calculate_rates(self):
         """
@@ -109,14 +109,14 @@ class BazaarTracker:
         buy_rates = []
         sell_rates = []
 
-        with self.lock:
-            for price_history in self.history.values():
-                recent = [entry for entry in price_history if current_time - entry["timestamp"] <= 60]
-                buy_rates.append(len(recent))
-                sell_rates.append(len(recent))
+        #with self.lock:
+        #    for price_history in self.history.values():
+        #        recent = [entry for entry in price_history if current_time - entry["timestamp"] <= 60]
+        #        buy_rates.append(len(recent))
+        #        sell_rates.append(len(recent))
 
-        buy_rate = sum(buy_rates) / len(buy_rates) if buy_rates else 0
-        sell_rate = sum(sell_rates) / len(sell_rates) if sell_rates else 0
+        buy_rate = 0
+        sell_rate = 0
         return buy_rate, sell_rate
 
     def calculate_difficulty(self):
