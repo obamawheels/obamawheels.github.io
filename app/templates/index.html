@@ -1203,8 +1203,7 @@
           const response = await fetch(url);
           if (!response.ok) throw new Error('Failed to fetch graph data.');
           graphHistoryData = await response.json();
-          console.log("Values to be used by graph", graphHistoryData);
-            graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.buy_price }))
+          console.log("Graph History Data", graphHistoryData)
           updateChart();
         } catch (error) {
           console.error('Graph error:', error);
