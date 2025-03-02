@@ -1204,14 +1204,8 @@
           if (!response.ok) throw new Error('Failed to fetch graph data.');
           graphHistoryData = await response.json();
           console.log("Values to be used by graph", graphHistoryData);
-            graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.buy_price }));
-          
-          if (graphHistoryData && graphHistoryData.length > 0) {
-            updateChart();
-          } else {
-              //If no data update result div
-              resultDiv.innerHTML = '<p>No graph data.</p>';
-          }
+            graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.buy_price }))
+          updateChart();
         } catch (error) {
           console.error('Graph error:', error);
           resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
