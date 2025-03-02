@@ -1,474 +1,458 @@
-/***********************************************
- *               THEME VARIABLES
- ***********************************************/
- :root {
-    --transition-speed: 0.3s;
-    --font-family: "Roboto", sans-serif;
+/*************************************************************************************
+ *                 DESTINY-STYLE BZTRACKER — SUPER-EXPANDED styles.css
+ *                 With Additional Animations, Planet Rotations, Etc.
+ ************************************************************************************/
+
+/* RESET / BASE */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* We'll handle scroll inside feature sections if needed */
+  font-family: "Roboto", sans-serif;
+  background: #000;
+  color: #fff;
+}
+
+/* THEME TOGGLES (Dark vs. Light) */
+body.dark-theme {
+  background: #000;
+  color: #fff;
+}
+body.light-theme {
+  background: linear-gradient(135deg, #a0cfe9, #e0f7fa);
+  color: #333;
+  animation: frostShimmer 10s ease infinite;
+}
+@keyframes frostShimmer {
+  0% { background-position: 0 0; }
+  100% { background-position: -200% 0; }
+}
+
+/*************************************************************************************
+ * 1) CANVAS STARFIELD
+ *************************************************************************************/
+ #cosmicCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0; /* ✅ Fix: Bring to foreground */
+  background: #000; /* Keep if you want the canvas to handle the background */
+}
+
+body.dark-theme {
+  background: transparent; /* ✅ Fix: Stop covering the canvas */
+
+}
+
+/*************************************************************************************
+ * 2) PLANET SELECTION (Landing Screen)
+ *************************************************************************************/
+.planet-select {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  max-width: 1400px;
+  height: 80%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* container not clickable, but each .planet is */
+}
+
+/* The .planet orbs */
+.planet {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease,
+    box-shadow 0.4s ease;
+  /* We'll add an animation for rotation, to give them a slow spin */
+  animation: slowSpin 20s linear infinite;
+}
+
+/* Planet slow rotation, you can define or randomize the direction. */
+@keyframes slowSpin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg);   }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* .planet-image is the spherical background */
+.planet-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 25px rgba(0,0,0,0.6);
+}
+
+/* Planet name label */
+.planet-name {
+  position: absolute;
+  bottom: -1.7rem;
+  width: 100%;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(0,0,0,0.8);
+}
+
+/* Hover effect: subtle enlarge + glow */
+.planet:hover .planet-image {
+  transform: scale(1.08);
+  box-shadow: 0 0 35px rgba(255,255,255,0.9);
+}
+.planet:hover {
+  transform: translate(-50%, -50%) scale(1.08) rotate(15deg);
+}
+
+/* Positions: center, corners */
+.center-planet {
+  top: 50%;
+  left: 50%;
+}
+.top-left {
+  top: 20%;
+  left: 20%;
+}
+.top-right {
+  top: 20%;
+  right: 20%;
+}
+.bottom-left {
+  bottom: 20%;
+  left: 20%;
+}
+.bottom-right {
+  bottom: 20%;
+  right: 20%;
+}
+
+/* Distinct planet backgrounds & color vibes 
+   You can replace these placeholder backgrounds with real textures
+*/
+.planet-umbra .planet-image {
+  background-image: url('https://placehold.co/300x300/4D2C67/FFFFFF?text=Umbra');
+}
+.planet-pyra .planet-image {
+  background-image: url('https://placehold.co/300x300/800000/FFFFFF?text=Pyra');
+}
+.planet-astris .planet-image {
+  background-image: url('https://placehold.co/300x300/5A667F/FFFFFF?text=Astris');
+}
+.planet-borealis .planet-image {
+  background-image: url('https://placehold.co/300x300/000080/FFFFFF?text=Borealis');
+}
+.planet-eclipse .planet-image {
+  background-image: url('https://placehold.co/300x300/555555/FFFFFF?text=Eclipse');
+}
+
+/*************************************************************************************
+ * 3) FEATURE SECTIONS (Hidden by Default)
+ *************************************************************************************/
+.feature-section {
+  display: none; /* hidden initially */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 85%;
+  max-width: 1100px;
+  max-height: 80%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.85);
+  border-radius: 10px;
+  padding: 20px;
+  overflow-y: auto;
+  animation: fadeIn 0.8s forwards;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.95);
   }
-  /* Dark Theme (Crying Obsidian) */
-  body.dark-theme {
-    --bg-color: #0b0c10;
-    --sidebar-bg: #151528;
-    --accent-color: #8a2be2;
-    --text-color: #e6e6fa;
-    --card-bg: #1d1d2b;
-    --particle-color: rgba(138,43,226, 0.5);
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
-  /* Light Theme (Ice) – Frosty, dynamic look with snow & icicles */
-  body.light-theme {
-    --bg-color: #e0f7fa;
-    --sidebar-bg: rgba(255,255,255,0.9);
-    --accent-color: #81d4fa;
-    --text-color: #01579b;
-    --card-bg: rgba(255,255,255,0.8);
-    --particle-color: rgba(129,212,250, 0.5);
-    background: linear-gradient(135deg, #a0cfe9, #e0f7fa);
-    background-size: 400% 400%;
-    animation: frostShimmer 10s ease infinite;
+}
+.feature-section h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+/* Distinct border colors for each planet’s section */
+.umbra-theme    { border: 2px solid #7E57C2; }
+.pyra-theme     { border: 2px solid #800000; }
+.astris-theme   { border: 2px solid #5A667F; }
+.borealis-theme { border: 2px solid #000080; }
+.eclipse-theme  { border: 2px solid #999999; }
+
+/* The content in each section */
+.feature-content {
+  margin-bottom: 2rem;
+}
+
+/* Back button with cinematic hover */
+.back-button {
+  display: inline-block;
+  margin: 1rem 0;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  text-transform: uppercase;
+  transition: background 0.4s, transform 0.4s, box-shadow 0.4s;
+}
+.back-button:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255,255,255,0.5);
+}
+
+/*************************************************************************************
+ * 4) BZTRACKER UI SECTIONS (Search, Graph, etc.)
+ *************************************************************************************/
+/* Loader/spinner */
+#loader {
+  display: none;
+  margin: 10px 0;
+  text-align: center;
+}
+.spinner {
+  border: 6px solid #666;
+  border-top: 6px solid #fff;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Search form */
+#search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#search-form input {
+  padding: 12px;
+  border: 1px solid #444;
+  background: #222;
+  border-radius: 4px;
+  color: #fff;
+}
+#search-form button {
+  align-self: flex-start;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+#search-form button:hover {
+  background: rgba(255,255,255,0.2);
+}
+#suggestions {
+  position: relative;
+}
+#suggestions div {
+  background: #444;
+  padding: 6px;
+  border: 1px solid #666;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background 0.3s;
+}
+#suggestions div:hover {
+  background: #555;
+}
+#result p {
+  margin: 4px 0;
+}
+
+/* Graph layout */
+.graph-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+#chart-area {
+  flex: 1;
+  min-width: 400px;
+}
+#priceGraph {
+  width: 100%;
+  height: 320px;
+  background: #111;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+#graph-controls {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.time-range-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.time-range-btn {
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.time-range-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+.toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toggle-switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #666;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+.slider:before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: 0.4s;
+}
+.toggle-switch input:checked + .slider {
+  background-color: #00eaff;
+}
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+#forecast-accuracy,
+#recommended-prices {
+  margin: 8px 0;
+  text-align: center;
+  font-weight: bold;
+}
+.target-sell {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.target-sell input {
+  width: 70px;
+  padding: 4px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+}
+
+/* Item cards (Top Margins, Profitability, Variations) */
+.item-card {
+  background: #222;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 6px;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.item-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 10px #fff;
+}
+.item-card p {
+  margin: 4px 0;
+}
+.item-card span {
+  color: #ffcccc;
+  font-weight: bold;
+}
+
+/*************************************************************************************
+ * 5) SOUND BUTTON
+ *************************************************************************************/
+.sound-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 9999;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.sound-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/*************************************************************************************
+ * 6) RESPONSIVE ADJUSTMENTS
+ *************************************************************************************/
+@media (max-width: 768px) {
+  .planet {
+    width: 100px;
+    height: 100px;
+    animation: slowSpinSmall 20s linear infinite;
   }
-  @keyframes frostShimmer {
-    0% { background-position: 0 0; }
-    100% { background-position: -200% 0; }
+  @keyframes slowSpinSmall {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100%{transform: translate(-50%, -50%) rotate(360deg);}
   }
-  /***********************************************
-   *            GLOBAL / BASE STYLES
-   ***********************************************/
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: var(--font-family);
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    transition: background-color var(--transition-speed), color var(--transition-speed);
-    overflow-x: hidden;
-    position: relative;
-  }
-  /***********************************************
-   *        PARTICLE CONTAINER & ANIMATION
-   ***********************************************/
-  #particle-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-  }
-  /* Icicles for the Light (Ice) theme */
-  #icicles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 60px;
-    pointer-events: none;
-    z-index: 999;
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-  }
-  body.dark-theme #icicles { display: none; }
-  #icicles .icicle {
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-bottom: 60px solid #fff;
-    opacity: 0.8;
-  }
-  /***********************************************
-   *           SIDEBAR & MENU / SOUND TOGGLES
-   ***********************************************/
-  #menuToggle, #soundToggle {
-    position: fixed;
-    top: 15px;
-    background: none;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
-    padding: 8px 12px;
-    font-size: 18px;
-    border-radius: 4px;
-    cursor: pointer;
-    z-index: 1001;
-    transition: background var(--transition-speed), color var(--transition-speed);
-  }
-  #menuToggle:hover, #soundToggle:hover {
-    background: var(--accent-color);
-    color: #fff;
-    text-shadow: 0 0 5px var(--accent-color);
-  }
-  #menuToggle { left: 15px; }
-  #soundToggle { right: 15px; }
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 240px;
-    height: 100%;
-    background: var(--sidebar-bg);
-    padding: 60px 20px;
-    transform: translateX(-260px);
-    transition: transform var(--transition-speed) ease;
-    z-index: 1002;
-    box-shadow: 5px 0 10px rgba(0,0,0,0.4);
-  }
-  body.light-theme #sidebar {
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-  #sidebar.open { transform: translateX(0); }
-  #sidebar h1 {
-    margin: 0 0 30px 0;
-    color: var(--accent-color);
-    text-align: center;
-  }
-  #sidebar ul { list-style: none; padding: 0; }
-  #sidebar li { margin: 15px 0; }
-  #sidebar a {
-    color: var(--text-color);
-    font-size: 1rem;
-    display: block;
-    padding: 8px 5px;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background var(--transition-speed), text-shadow var(--transition-speed);
-  }
-  #sidebar a:hover {
-    background: rgba(129,212,250,0.2);
-    text-shadow: 0 0 5px var(--accent-color);
-  }
-  #overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: none;
-    z-index: 1001;
-  }
-  #overlay.show { display: block; }
-  
-  /***********************************************
-   *            MAIN CONTENT & SECTIONS
-   ***********************************************/
-  #mainContent {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 70px 20px 40px;
-    position: relative;
-    z-index: 10;
-  }
-  section {
-    background: var(--card-bg);
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    margin-bottom: 50px;
-    padding: 20px;
-    transition: background var(--transition-speed);
-  }
-  body.light-theme .item-card {
-    background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255,255,255,0.4);
-  }
-  section h2 {
-    text-align: center;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-  }
-  .graph-subtitle {
-    text-align: center;
-    color: #aaa;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-  }
-  
-  /***********************************************
-   *             LOADER (SPINNER)
-   ***********************************************/
-  #loader {
-    display: none;
-    margin: 10px 0;
-    text-align: center;
-  }
-  .spinner {
-    border: 6px solid #999;
-    border-top: 6px solid var(--accent-color);
-    border-radius: 50%;
-    width: 35px;
-    height: 35px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto;
-  }
-  @keyframes spin { 100% { transform: rotate(360deg); } }
-  
-  /***********************************************
-   *         SEARCH SECTION
-   ***********************************************/
-  #search-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  #search-form input {
-    padding: 15px;
-    background: #222;
-    border: 2px solid #333;
-    border-radius: 5px;
-    color: #fff;
-    font-size: 1rem;
-  }
-  body.light-theme #search-form input {
-    background: rgba(255,255,255,0.7);
-    border: 2px solid #ccc;
-    color: #333;
-  }
-  #search-form input::placeholder { color: #777; }
-  body.light-theme #search-form input::placeholder { color: #666; }
-  #search-form button { align-self: start; }
-  #suggestions { position: relative; }
-  #suggestions div {
-    background: #2f2f46;
-    padding: 10px;
-    border: 1px solid var(--accent-color);
-    cursor: pointer;
-    transition: background var(--transition-speed);
-    margin-bottom: 2px;
-  }
-  #suggestions div:hover { background: #3c3c60; }
-  #result p { margin: 5px 0; }
-  
-  /***********************************************
-   *         GRAPH SECTION – Two-Column Layout
-   ***********************************************/
-  .graph-layout {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  #chart-area {
-    flex: 3;
-    min-width: 500px;
-  }
-  #graph-controls {
-    flex: 1;
-    min-width: 260px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    justify-content: flex-start;
+  .feature-section {
+    width: 90%;
+    max-width: 600px;
   }
   #priceGraph {
-    width: 100%;
-    height: 600px;
-    background: #1a1a1a;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    margin-bottom: 10px;
+    height: 220px;
   }
-  .time-range-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    justify-content: center;
-  }
-  .time-range-btn {
-    background: #333;
-    color: #fff;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    padding: 5px 10px;
-    transition: background var(--transition-speed), box-shadow var(--transition-speed);
-  }
-  body.light-theme .time-range-btn {
-    background: var(--accent-color);
-    color: #fff;
-  }
-  body.light-theme .time-range-btn:hover {
-    background: #4fc3f7;
-  }
-  #trendline-controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-  }
-  .toggle-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .toggle-group span { font-size: 0.9rem; }
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 25px;
-  }
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-    border-radius: 25px;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 19px;
-    width: 19px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.4s;
-    border-radius: 50%;
-  }
-  .toggle-switch input:checked + .slider {
-    background-color: var(--accent-color);
-  }
-  .toggle-switch input:checked + .slider:before {
-    transform: translateX(25px);
-  }
-  #extra-controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  .target-sell {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-  }
-  #target-sell-price {
-    width: 100px;
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    text-align: center;
-  }
-  #forecast-accuracy,
-  #recommended-prices {
-    text-align: center;
-    margin: 8px 0;
-    font-weight: bold;
-  }
-  
-  /***********************************************
-   *         TOP MARGINS & OTHER SECTIONS
-   ***********************************************/
-  .flex-row {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-  .large { flex: 2; }
-  .small { flex: 1; }
-  #top-margins-section select,
-  #top-margins-section button { margin: 5px 5px 5px 0; }
-  #top-margins { margin-top: 15px; }
-  .item-card {
-    background: #222;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  }
-  body.light-theme .item-card {
-    background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255,255,255,0.4);
-  }
-  .item-card:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 10px var(--accent-color);
-  }
-  .item-card p { margin: 4px 0; }
-  .item-card span { font-weight: bold; color: var(--accent-color); }
-  
-  /***********************************************
-   *         PROFITABILITY SECTION
-   ***********************************************/
-  #profitability-section input {
-    width: 80px;
-    padding: 5px;
-    margin: 0 10px 0 0;
-    border: 2px solid #444;
-    border-radius: 5px;
-    background: #2f2f46;
-    color: #fff;
-  }
-  body.light-theme #profitability-section input {
-    background: rgba(255,255,255,0.7);
-    border: 2px solid #ccc;
-    color: #333;
-  }
-  
-  /***********************************************
-   *         TOP VARIATIONS SECTION
-   ***********************************************/
-  #top-variations-section select,
-  #top-variations-section button { margin: 5px 5px 5px 0; }
-  #top-variations { margin-top: 15px; }
-  
-  /***********************************************
-   *         RESPONSIVE ADJUSTMENTS
-   ***********************************************/
-  @media (max-width: 768px) {
-    .flex-row { flex-direction: column; }
-    .large, .small { flex: 1 1 100%; }
-    #search-form button { align-self: stretch; }
-    #priceGraph { height: 400px; }
-  }
-  
-  /***********************************************
-   *        SETTINGS SECTION (THEME TOGGLE)
-   ***********************************************/
-  #settings-section {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  #theme-toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0;
-  }
-  #theme-select {
-    padding: 5px 8px;
-    border: 2px solid #444;
-    background: #2f2f46;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-  }
-  body.light-theme #theme-select {
-    background: #fff;
-    border: 2px solid #ccc;
-    color: #333;
-  }
-  #theme-select option {
-    color: #fff;
-    background-color: #2f2f46;
-  }
-  body.light-theme #theme-select option {
-    color: #333;
-    background-color: #fff;
-  }
-  
+}
