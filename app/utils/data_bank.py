@@ -20,8 +20,7 @@ def init_db():
                 item_id TEXT,
                 buy_price REAL,
                 sell_price REAL,
-                timestamp BIGINT,
-                PRIMARY KEY (item_id, timestamp)
+                timestamp BIGINT
             )
         ''')
         conn.commit()
@@ -42,31 +41,15 @@ def save_data(item_id, buy_price, sell_price, timestamp):
         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
         cursor = conn.cursor()
 
-        # Check if the record already exists
+        # Insert a new record
         cursor.execute('''
-            SELECT buy_price, sell_price
-            FROM data
-            WHERE item_id = %s AND timestamp = %s
-        ''', (item_id, timestamp))
-        existing_record = cursor.fetchone()
-
-        if existing_record:
-            existing_buy_price, existing_sell_price = existing_record
-            # Only update if the buy_price or sell_price has changed
-            if existing_buy_price != buy_price or existing_sell_price != sell_price:
-                cursor.execute('''
-                    UPDATE data
-                    SET buy_price = %s, sell_price = %s
-                    WHERE item_id = %s AND timestamp = %s
-                ''', (buy_price, sell_price, item_id, timestamp))
-                print(f"Updated {item_id} at {timestamp}")
-        else:
-            # Insert a new record
-            cursor.execute('''
-                INSERT INTO data (item_id, buy_price, sell_price, timestamp)
-                VALUES (%s, %s, %s, %s)
-            ''', (item_id, buy_price, sell_price, int(timestamp)))
-            print(f"Inserted {item_id} at {timestamp}")
+            INSERT INTO data (item_id, buy_price, sell_price, timestamp)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (item_id) DO UPDATE
+            SET buy_price = %s,
+                sell_price = %s,
+                timestamp = %s
+        ''', (item_id, buy_price, sell_price, int(timestamp), buy_price, sell_price, int(timestamp)))
 
         conn.commit()
     except Exception as e:
