@@ -1197,28 +1197,34 @@
 
       // FETCH GRAPH DATA & UPDATE CHART
       async function fetchGraphData(itemName, timeRange = 'all') {
-        try {
-          showLoader(true);
-          const url = `/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Failed to fetch graph data.');
-          graphHistoryData = await response.json();
-          console.log("Values to be used by graph", graphHistoryData);
-            graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.buy_price }));
-          
-          if (graphHistoryData && graphHistoryData.length > 0) {
-            updateChart();
-          } else {
-              //If no data update result div
-              resultDiv.innerHTML = '<p>No graph data.</p>';
-          }
-        } catch (error) {
-          console.error('Graph error:', error);
-          resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
+    try {
+      showLoader(true);
+      const url = `/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch graph data: ${response.status} ${response.statusText}`);
       }
+      const responseData = await response.json();
+
+      if (responseData && responseData.length > 0) {
+        // Process the data
+        const graphData = responseData.map(h => ({
+          x: new Date(h.timestamp * 1000), // Assuming timestamp is in seconds
+          y: h.buy_price,
+          sellPrice: h.sell_price // Include sell price for tooltip
+        }));
+        console.log("Graph Data", graphData);
+        updateChart(graphData);
+      } else {
+        resultDiv.innerHTML = '<p>No historical data available for this item and time range.</p>';
+      }
+    } catch (error) {
+      console.error('Graph error:', error);
+      resultDiv.innerHTML = `<p>Error loading graph data. Please try again later.</p>`;
+    } finally {
+      showLoader(false);
+    }
+  }
 
       // FETCH TOP MARGINS
       async function fetchTopMargins() {
