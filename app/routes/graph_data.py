@@ -62,7 +62,7 @@ def fetch_historical_data(item_name, time_range):
         results = cursor.fetchall()
 
         # Format the data for the graph
-        formatted_data = [{"timestamp": row[0], "buy_price": row[1], "sell_price": row[2]} for row in results]
+        formatted_data = [{"timestamp": row[0] * 1000, "buy_price": row[1], "sell_price": row[2]} for row in results]
         return formatted_data
 
     except Exception as e:
