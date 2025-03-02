@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request
 from app.utils.data_bank import fetch_data
+import time
 
 main_bp = Blueprint('main', __name__)
 
