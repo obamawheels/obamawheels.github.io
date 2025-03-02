@@ -1,5 +1,6 @@
 from flask import jsonify, request
-from your_tracker_module import tracker  # Import your tracker instance
+from bazaar_tracker import tracker  # Import your tracker instance
+from run import app
 
 @app.route('/top-variations')
 def top_variations():
