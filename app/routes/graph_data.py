@@ -17,7 +17,7 @@ def graph_data():
         history = fetch_historical_data(item_name, time_range)
         if not history:
             return jsonify({"error": "Item not found"}), 404
-        print(f"Python GRAPH DEBUG: This is the history {history}")
+
         return jsonify(history) #Changed variable name, and changed to use this dataset
 
     except Exception as e:

@@ -1203,7 +1203,6 @@
           const response = await fetch(url);
           if (!response.ok) throw new Error('Failed to fetch graph data.');
           graphHistoryData = await response.json();
-          console.log("Graph History Data", graphHistoryData)
           updateChart();
         } catch (error) {
           console.error('Graph error:', error);
