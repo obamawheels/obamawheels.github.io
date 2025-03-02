@@ -1,65 +1,49 @@
-import psycopg2
-import os
+import sqlite3
 import time
 import threading
 from bazaar_tracker import BazaarTracker
 
-# Get Heroku PostgreSQL URL
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
 # Initialize the database connection
 def init_db():
-    """Create the database table if it doesn't exist."""
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    conn = sqlite3.connect('data_bank.db')
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS data (
             item_id TEXT PRIMARY KEY,
             buy_price REAL,
             sell_price REAL,
-            timestamp BIGINT
+            timestamp INTEGER
         )
     ''')
     conn.commit()
-    cursor.close()
     conn.close()
 
-# Save data to PostgreSQL
+# Save data to the database
 def save_data(item_id, buy_price, sell_price):
-    """Insert or update data in the database."""
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    conn = sqlite3.connect('data_bank.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO data (item_id, buy_price, sell_price, timestamp)
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (item_id) DO UPDATE
-        SET buy_price = EXCLUDED.buy_price,
-            sell_price = EXCLUDED.sell_price,
-            timestamp = EXCLUDED.timestamp
+        INSERT OR REPLACE INTO data (item_id, buy_price, sell_price, timestamp)
+        VALUES (?, ?, ?, ?)
     ''', (item_id, buy_price, sell_price, int(time.time())))
     conn.commit()
-    cursor.close()
     conn.close()
 
-# Fetch data for a specific item
+# Fetch data from the database
 def fetch_data(item_id):
-    """Retrieve data from the database."""
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    conn = sqlite3.connect('data_bank.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM data WHERE item_id = %s', (item_id,))
+    cursor.execute('SELECT * FROM data WHERE item_id = ?', (item_id,))
     data = cursor.fetchone()
-    cursor.close()
     conn.close()
     return data
 
-# Fetch all data
+# Fetch all data from the database
 def fetch_all_data():
-    """Retrieve all data from the database."""
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+    conn = sqlite3.connect('data_bank.db')
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM data')
     data = cursor.fetchall()
-    cursor.close()
     conn.close()
     return data
 
@@ -72,7 +56,7 @@ def start_background_thread():
             try:
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
-                    save_data(item_id, item_data.get("buy_price", 0), item_data.get("sell_price", 0))
+                    save_data(item_id, item_data['buy_price'], item_data['sell_price'])
                 print("Data successfully updated and saved to the database.")
             except Exception as e:
                 print(f"Error updating data: {e}")
@@ -80,8 +64,8 @@ def start_background_thread():
 
     threading.Thread(target=background_data_updater, daemon=True).start()
 
-# Initialize the PostgreSQL database
+# Initialize the database
 init_db()
 
-# Start the background update thread
+# Start the background thread
 start_background_thread()
