@@ -42,31 +42,18 @@ def save_data(item_id, buy_price, sell_price, timestamp):
         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
         cursor = conn.cursor()
 
-        # Check if the record already exists
-        cursor.execute('''
-            SELECT buy_price, sell_price
-            FROM data
-            WHERE item_id = %s AND timestamp = %s
-        ''', (item_id, timestamp))
-        existing_record = cursor.fetchone()
+        #Check to see if the item already exists
+        cursor.execute('''SELECT 1 FROM data WHERE item_id = %s AND timestamp = %s''', (item_id, timestamp))
+        exists = cursor.fetchone()
 
-        if existing_record:
-            existing_buy_price, existing_sell_price = existing_record
-            # Only update if the buy_price or sell_price has changed
-            if existing_buy_price != buy_price or existing_sell_price != sell_price:
-                cursor.execute('''
-                    UPDATE data
-                    SET buy_price = %s, sell_price = %s
-                    WHERE item_id = %s AND timestamp = %s
-                ''', (buy_price, sell_price, item_id, timestamp))
-                print(f"Updated {item_id} at {timestamp}")
+        if exists:
+            print("entry already exists")
         else:
             # Insert a new record
             cursor.execute('''
                 INSERT INTO data (item_id, buy_price, sell_price, timestamp)
                 VALUES (%s, %s, %s, %s)
             ''', (item_id, buy_price, sell_price, int(timestamp)))
-            print(f"Inserted {item_id} at {timestamp}")
 
         conn.commit()
     except Exception as e:
