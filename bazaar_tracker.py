@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 import logging
 
 class BazaarTracker:
-    def __init__(self, update_interval=60, max_history=525600, plot_queue=None):
+    def __init__(self, update_interval=60, max_history=100, plot_queue=None):
         """
         Initialize BazaarTracker with shared resources for data, history, and rate tracking.
         """
