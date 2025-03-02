@@ -50,8 +50,8 @@ def save_data(item_id, buy_price, sell_price, timestamp):
 
         conn.commit()
     except Exception as e:
-        print(f"Database error: {e}")
         conn.rollback()
+        print(f"Database error: {e}")
     finally:
         if cursor:
             cursor.close()
