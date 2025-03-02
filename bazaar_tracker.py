@@ -10,7 +10,7 @@ class BazaarTracker:
         Initialize BazaarTracker with shared resources for data, history, and rate tracking.
         """
         self.data = {}
-        #self.history = defaultdict(lambda: deque(maxlen=max_history))  # Limit history to max_history per item
+        self.history = defaultdict(lambda: deque(maxlen=max_history))  # Limit history to max_history per item
         self.lock = threading.Lock()
         self.update_interval = update_interval
         self.notifications = deque(maxlen=50)  # Queue for notifications
@@ -45,11 +45,11 @@ class BazaarTracker:
                     sell_price = self._get_price(details, "sell_summary")
 
                     if buy_price is not None and sell_price is not None:
-                        #self.history[item_id].append({
-                        #    "timestamp": timestamp,
-                        #    "buy_price": buy_price,
-                        #    "sell_price": sell_price,
-                        #})
+                        self.history[item_id].append({
+                            "timestamp": timestamp,
+                            "buy_price": buy_price,
+                            "sell_price": sell_price,
+                        })
                         # Notify if significant price change occurs
                         self._notify_changes(item_id, buy_price, sell_price)
 
@@ -161,6 +161,10 @@ class BazaarTracker:
         """
         Return historical price data for graphing.
         """
+        with self.lock:
+            for item_id, price_history in self.history.items():
+                if item_name.lower() in item_id.lower():
+                    return list(price_history)
         return None
 
     def get_top_margins(self, sort_by="margin", order="desc"):
@@ -219,56 +223,6 @@ def run_updater(tracker):
         tracker.update_data()
         time.sleep(60)
 
-def get_top_margins(tracker, sort_by="margin", order="desc", coins=0):
-    """
-    Return top items with additional coins-per-hour calculation.
-    """
-    with tracker.lock:
-        items = []
-        for item_id, details in tracker.data.items():
-            buy_price = tracker._get_price(details, "buy_summary")
-            sell_price = tracker._get_price(details, "sell_summary")
-
-            if buy_price is not None and sell_price is not None:
-                margin = round(buy_price - sell_price, 2)
-                coins_per_hour = ((margin * coins) / 60) if coins > 0 else 0
-
-                items.append({
-                    "item_id": item_id,
-                    "buy_price": buy_price,
-                    "sell_price": sell_price,
-                    "margin": margin,
-                    "coins_per_hour": coins_per_hour,
-                })
-
-        reverse = order == "desc"
-        items.sort(key=lambda x: x.get(sort_by, 0), reverse=reverse)
-        return items[:10]
-# Removed redundant __init__ method
-        pass
-
-
-def __init__(self, update_interval=60, max_history=100, plot_queue=None):
-
-        """
-
-        Initialize BazaarTracker with shared resources for data, history, and rate tracking.
-
-        """
-
-        self.data = {}
-
-        self.history = defaultdict(lambda: deque(maxlen=max_history))  # Limit history to max_history per item
-
-        self.lock = threading.Lock()
-
-        self.update_interval = update_interval
-
-        self.notifications = deque(maxlen=50)  # Queue for notifications
-
-        self.logger = self._setup_logger()
-
-        self.plot_queue = plot_queue
 
 
 if __name__ == "__main__":
