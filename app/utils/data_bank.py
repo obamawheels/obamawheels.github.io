@@ -46,6 +46,7 @@ def save_data(item_id, buy_price, sell_price, timestamp):
         cursor.execute('''
             INSERT INTO data (item_id, buy_price, sell_price, timestamp)
             VALUES (%s, %s, %s, %s)
+            ON CONFLICT (item_id, timestamp) DO NOTHING
         ''', (item_id, buy_price, sell_price, int(timestamp)))
 
         conn.commit()
