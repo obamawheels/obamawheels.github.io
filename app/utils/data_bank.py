@@ -59,19 +59,26 @@ def fetch_all_data():
 
 # Function to write data to InfluxDB
 def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
-    client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-    write_api = client.write_api()
+    logging.info(f"Attempting to write to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")
 
-    point = Point("item_prices") \
-        .tag("item_id", item_id) \
-        .field("buy_price", buy_price) \
-        .field("sell_price", sell_price) \
-        .time(timestamp, write_precision='s')  # Use the provided timestamp
+    try:
+        client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
+        write_api = client.write_api()
 
-    write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+        point = Point("item_prices") \
+            .tag("item_id", item_id) \
+            .field("buy_price", buy_price) \
+            .field("sell_price", sell_price) \
+            .time(timestamp, write_precision='s')
 
-    write_api.close()
-    client.close()
+        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+
+        write_api.close()
+        client.close()
+
+        logging.info(f"Successfully wrote data to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")
+    except Exception as e:
+        logging.error(f"Error writing data to InfluxDB: {e}")
 
 # Modified background thread to update data periodically
 def start_background_thread():
@@ -84,10 +91,11 @@ def start_background_thread():
             try:
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
-                    logging.info(f"Item data for item_id {item_id}: {item_data}")  # Add this line
+                    logging.info(f"Item data for item_id {item_id}: {item_data}")  # This line confirms data is being read.
 
                     buy_price = item_data.get('buy_price', 0)  # Default to 0 if 'buy_price' is missing
                     sell_price = item_data.get('sell_price', 0)  # Default to 0 if 'sell_price' is missing
+                    logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}") #This line shows what prices are before they are saved!
 
                     timestamp = int(time.time())
                     save_data(item_id, buy_price, sell_price)
@@ -95,6 +103,7 @@ def start_background_thread():
                     logging.info(f"Data successfully updated and saved to the database and InfluxDB: Item ID = {item_id}")
             except Exception as e:
                 logging.error(f"Error updating data: {e}")
+                    
             time.sleep(60)  # Wait 60 seconds before the next update
 
     threading.Thread(target=background_data_updater, daemon=True).start()
