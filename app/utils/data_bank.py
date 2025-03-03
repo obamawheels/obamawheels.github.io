@@ -5,9 +5,6 @@ import logging
 from influxdb_client import InfluxDBClient, Point
 from datetime import datetime
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # InfluxDB Configuration (Read from environment variables)
 INFLUXDB_URL = os.environ.get("INFLUXDB_URL")
 INFLUXDB_ORG = os.environ.get("INFLUXDB_ORG")
@@ -29,7 +26,7 @@ def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
     try:
         point = Point("item_prices") \
             .tag("item_id", item_id) \
-            .field("buy_price", float(buy_price)) \
+            .field("buy_price", float(buy_price))  \
             .field("sell_price", float(sell_price)) \
             .tag("valid_prices", True if buy_price > 0 and sell_price > 0 else False) \
             .time(timestamp, write_precision='s')
@@ -57,9 +54,13 @@ def start_background_thread():
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
 
+                    # Debug and check where the prices are located
+
                     #Get prices properly
                     buy_price = item_data.get('quick_status',{}).get('buyPrice', 0)  # Default to 0 if 'buyPrice' is missing
                     sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing
+
+                    #Logging to help debug!
 
                     timestamp = int(time.time())
                     write_to_influxdb(item_id, buy_price, sell_price, timestamp)
