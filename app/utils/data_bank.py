@@ -97,7 +97,7 @@ def start_background_thread():
                 logging.error(f"Error updating data: {e}")
             time.sleep(60)  # Wait 60 seconds before the next update
 
-        threading.Thread(target=background_data_updater, daemon=True).start()
+    threading.Thread(target=background_data_updater, daemon=True).start()
 
 # Initialize the SQLite database
 init_db()
