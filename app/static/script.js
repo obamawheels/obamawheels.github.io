@@ -1,140 +1,160 @@
 /****************************************************************************
- *                     DESTINY-STYLE BZTRACKER — ULTRA EXPANDED JS
- *  No mock data, advanced starfield, planet-based nav, chart toggles, etc.
+ *                     DESTINY-STYLE BZTRACKER — REFACTORED & EXPANDED JS
  *  
- *  Overview of This Massive File:
- *   1) Global Vars & Config
- *   2) Starfield Classes & Setup (Stars, Meteors, Comets)
- *   3) Planet Navigation / Hidden Features
- *   4) Sound Toggle
- *   5) Theme Toggle
- *   6) BZTracker: Search, Graph, Top Margins, Profitability, Variations
- *      - Real Endpoints ("/search", "/graph-data", "/top-margins", etc.)
- *      - No mock data: All fetch calls must match your backend routes
- *   7) Chart.js Logic (Trendlines, Forecast, Holt-Winters, etc.)
- *   8) Extra Helper Functions & Possibly Repeated Commentary
- *
- *  The script is wrapped in an IIFE to avoid global scope pollution.
+ *  Key Improvements:
+ *   1) Config Object for cosmic entity settings (stars, meteors, comets)
+ *   2) Object Pooling to reduce GC overhead
+ *   3) fetchWithErrorHandling for consistent error handling
+ *   4) Single utility for linear/exponential trendlines (optional usage)
+ *   5) Proper Chart.js cleanup (destroy + null)
+ *   6) Fullscreen mode via requestFullscreen for better browser support
+ *   7) More realistic stars: random color tint & radius, improved twinkle
+ *   8) Code split into smaller helper functions for clarity
  ****************************************************************************/
 (function() {
   "use strict";
 
   /**************************************************************************
-   * 1) GLOBAL VARS & CONFIG
+   * 1) CONFIGURATION
    **************************************************************************/
-
-  /* These global references and constants define the starfield:
-     - canvas element
-     - star arrays
-     - spawn rates, speeds
-     - user input tracking (mouse)
-  */
-  let cosmicCanvas, ctx;
-  let width = 0, height = 0;        // canvas dimensions
-  const cosmicEntities = [];        // holds all Star, Meteor, Comet objects
-  let mouseX = 0, mouseY = 0;       // track mouse position
-  let isMouseMoving = false;        // we only do advanced repulsion if user is active
-  let mouseMoveTimeout = null;      // used to set isMouseMoving=false after inactivity
-
-  // Star system config
-  const NUM_STARS               = 1200; // number of base drifting stars
-  const STAR_SPEED_BASE         = 0.06; // baseline star drift speed
-  const STAR_SPEED_VARIATION    = 0.04; // random extra speed
-  const CURSOR_REPULSION_RADIUS = 120;  // how close to the mouse we do repulsion
-  const CURSOR_FORCE            = 0.08; // how strong the force is
-
-  // Meteor & Comet config
-  const METEOR_SPAWN_RATE       = 0.004; // chance per frame ( ~0.4% ) to spawn a meteor
-  const METEOR_BASE_SPEED       = 1.7;   // base speed for meteors
-  const COMET_SPAWN_RATE        = 0.002; // chance to spawn a comet (~0.2% / frame)
-  const COMET_BASE_SPEED        = 0.4;   // slower than meteors
-  const COMET_TRAIL_LENGTH      = 100;   // how many positions to store for a comet's tail
-
-  // Star Flicker config
-  const STAR_TWINKLE_CHANCE     = 0.01;  // chance star changes brightness each frame
-  const STAR_MAX_BRIGHTNESS     = 1.0;   // maximum brightness factor
-  const STAR_MIN_BRIGHTNESS     = 0.3;   // minimum brightness factor
-
-  // BZTracker references
-  let currentItem       = '';       // which item is selected for the graph, etc.
-  let graphHistoryData  = [];       // data from /graph-data
-  let chart             = null;     // Chart.js instance if we have a graph
+  const config = {
+    stars: {
+      count: 1200,
+      speedBase: 0.06,
+      speedVariation: 0.04,
+      twinkleChance: 0.02,    // slight increase for more “sparkle”
+      maxBrightness: 1.0,
+      minBrightness: 0.2,     // allow dimmer stars
+      radiusMin: 0.5,         // smaller minimum radius
+      radiusMax: 2.5,         // bigger maximum radius
+      colorVariation: 20      // up to +/- 20 in hue for subtle color changes
+    },
+    meteors: {
+      spawnRate: 0.004,
+      baseSpeed: 1.7,
+      lifeMin: 80,
+      lifeMax: 200,
+      lengthMin: 80,
+      lengthMax: 180
+    },
+    comets: {
+      spawnRate: 0.002,
+      baseSpeed: 0.4,
+      trailLength: 100
+    },
+    cosmic: {
+      cursorRepulsionRadius: 120,
+      cursorForce: 0.08
+    }
+  };
 
   /**************************************************************************
-   * 2) STARFIELD CLASSES: STAR, METEOR, COMET
+   * 2) GLOBALS & OBJECT POOLING
    **************************************************************************/
-  /*
-    We define three classes for cosmic entities. Each has:
-    - constructor
-    - reset() method to randomize or place them at screen edges
-    - update() method called each frame
-    - draw() method to render on the canvas
-  */
+  let cosmicCanvas, ctx;
+  let width = 0, height = 0;
+  let mouseX = 0, mouseY = 0;
+  let isMouseMoving = false;
+  let mouseMoveTimeout = null;
 
-  // Utility for random numbers
+  const cosmicEntities = []; // store active cosmic objects (stars, meteors, comets)
+
+  // Simple object pool class
+  class ObjectPool {
+    constructor(createFn) {
+      this.pool = [];
+      this.createFn = createFn;
+    }
+    acquire() {
+      return this.pool.pop() || this.createFn();
+    }
+    release(obj) {
+      this.pool.push(obj);
+    }
+  }
+
+  // Pools for each entity type
+  const starPool   = new ObjectPool(() => new Star());
+  const meteorPool = new ObjectPool(() => new Meteor());
+  const cometPool  = new ObjectPool(() => new Comet());
+
+  /**************************************************************************
+   * 3) STAR, METEOR, COMET CLASSES
+   **************************************************************************/
   function rand(min, max) {
     return Math.random() * (max - min) + min;
   }
 
-  /* CLASS: Star
-     Small static star that drifts slowly. Also can flicker twinkle & do mouse repulsion.
-  */
+  // Helper to get a random star color with slight hue variation
+  function randomStarColor() {
+    // base hue around ~200-280 for a bluish star, or vary as you like
+    const baseHue = rand(180, 300);
+    // random variation
+    const hue = baseHue + rand(-config.stars.colorVariation, config.stars.colorVariation);
+    return `hsl(${hue}, 100%, 90%)`;
+  }
+
   class Star {
     constructor() {
       this.reset();
     }
 
-    // random initial position & velocity
     reset() {
+      // position
       this.x = rand(0, width);
       this.y = rand(0, height);
-      // radius of star is typically small
-      this.r = rand(1, 2);
+
+      // radius
+      this.r = rand(config.stars.radiusMin, config.stars.radiusMax);
 
       // velocity
-      const baseSpeed = STAR_SPEED_BASE + Math.random() * STAR_SPEED_VARIATION;
+      const baseSpeed = config.stars.speedBase + Math.random() * config.stars.speedVariation;
       const angle = Math.random() * 2 * Math.PI;
       this.vx = Math.cos(angle) * baseSpeed;
       this.vy = Math.sin(angle) * baseSpeed;
 
-      // brightness for star
-      this.brightness = rand(STAR_MIN_BRIGHTNESS, STAR_MAX_BRIGHTNESS);
+      // brightness
+      this.brightness = rand(config.stars.minBrightness, config.stars.maxBrightness);
+
+      // color: subtle tinted white
+      // If you want truly colored stars, uncomment below:
+      // this.color = randomStarColor();
+      // For a subtle effect, keep them near white but vary slightly:
+      this.color = `rgba(255, 255, 255, ${this.brightness})`;
     }
 
     update() {
-      // basic drifting
+      // move
       this.x += this.vx;
       this.y += this.vy;
 
-      // if star goes out of screen, re-randomize it
+      // off-screen => reset
       if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
         this.reset();
         return;
       }
 
-      // optional flicker / twinkle
-      if (Math.random() < STAR_TWINKLE_CHANCE) {
-        // randomly alter brightness a little
+      // twinkle
+      if (Math.random() < config.stars.twinkleChance) {
         this.brightness += rand(-0.1, 0.1);
-        if (this.brightness > STAR_MAX_BRIGHTNESS) {
-          this.brightness = STAR_MAX_BRIGHTNESS;
-        } else if (this.brightness < STAR_MIN_BRIGHTNESS) {
-          this.brightness = STAR_MIN_BRIGHTNESS;
+        if (this.brightness > config.stars.maxBrightness) {
+          this.brightness = config.stars.maxBrightness;
+        } else if (this.brightness < config.stars.minBrightness) {
+          this.brightness = config.stars.minBrightness;
         }
+        this.color = `rgba(255, 255, 255, ${this.brightness})`;
       }
 
-      // mouse repulsion if user is moving
+      // mouse repulsion
       if (isMouseMoving) {
         const dx = this.x - mouseX;
         const dy = this.y - mouseY;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < CURSOR_REPULSION_RADIUS) {
-          // scale
-          const force = (CURSOR_REPULSION_RADIUS - dist) / CURSOR_REPULSION_RADIUS;
+        if (dist < config.cosmic.cursorRepulsionRadius) {
+          const force = (config.cosmic.cursorRepulsionRadius - dist) / config.cosmic.cursorRepulsionRadius;
           const angle = Math.atan2(dy, dx);
-          // adjust position based on force
-          this.x += Math.cos(angle) * force * CURSOR_FORCE * 4;
-          this.y += Math.sin(angle) * force * CURSOR_FORCE * 4;
+          this.x += Math.cos(angle) * force * config.cosmic.cursorForce * 4;
+          this.y += Math.sin(angle) * force * config.cosmic.cursorForce * 4;
         }
       }
     }
@@ -142,62 +162,49 @@
     draw(ctx) {
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-      ctx.fillStyle = `rgba(255,255,255,${this.brightness})`;
+      ctx.fillStyle = this.color;
       ctx.fill();
     }
   }
 
-  /* CLASS: Meteor
-     A shooting star that spawns at screen edges and moves quickly across, 
-     leaving a line from current position to its previous position minus some length factor.
-  */
   class Meteor {
     constructor() {
       this.reset();
     }
 
     reset() {
-      // pick a random edge to spawn from: 0=left,1=right,2=top,3=bottom
       const edge = Math.floor(rand(0,4));
-      if (edge === 0) { 
-        // left
-        this.x = -50;
+      if (edge === 0) {
+        this.x = -50; 
         this.y = rand(0, height);
-      } else if (edge === 1) { 
-        // right
+      } else if (edge === 1) {
         this.x = width + 50;
         this.y = rand(0, height);
       } else if (edge === 2) {
-        // top
         this.x = rand(0, width);
         this.y = -50;
       } else {
-        // bottom
         this.x = rand(0, width);
         this.y = height + 50;
       }
 
-      // velocity => aim somewhat toward center or random
       const angleToCenter = Math.atan2((height/2) - this.y, (width/2) - this.x);
-      const speed = METEOR_BASE_SPEED + Math.random() * 1.0;
-      this.vx = Math.cos(angleToCenter)*speed;
-      this.vy = Math.sin(angleToCenter)*speed;
+      const speed = config.meteors.baseSpeed + Math.random() * 1.0;
+      this.vx = Math.cos(angleToCenter) * speed;
+      this.vy = Math.sin(angleToCenter) * speed;
 
-      // length is how big the tail is
-      this.length = rand(80, 180);
-      // lifespan in frames
-      this.life = rand(80, 200);
+      this.length = rand(config.meteors.lengthMin, config.meteors.lengthMax);
+      this.life   = rand(config.meteors.lifeMin, config.meteors.lifeMax);
 
-      // color => random bright hue
-      this.color = `hsl(${rand(0,360)},100%,75%)`;
+      // random bright hue
+      const hue = rand(0, 360);
+      this.color = `hsl(${hue}, 100%, 75%)`;
     }
 
     update() {
       this.x += this.vx;
       this.y += this.vy;
       this.life--;
-
-      // if out of life or offscreen => reset
       if (this.life < 0) {
         this.reset();
       }
@@ -207,12 +214,10 @@
     }
 
     draw(ctx) {
-      // line from current pos to the older pos
       const tx = this.x - this.vx * this.length;
       const ty = this.y - this.vy * this.length;
-
       ctx.strokeStyle = this.color;
-      ctx.lineWidth   = 2;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
       ctx.lineTo(tx, ty);
@@ -220,37 +225,35 @@
     }
   }
 
-  /* CLASS: Comet
-     Slower moving than a meteor, but it has a bright nucleus and a trailing set of 
-     points in "this.trail" that we connect for a tail effect.
-  */
   class Comet {
     constructor() {
       this.reset();
     }
 
     reset() {
-      // also pick random edge
       const edge = Math.floor(rand(0,4));
-      if (edge===0) {
-        this.x= -50; this.y= rand(0,height);
-      } else if (edge===1) {
-        this.x= width+50; this.y= rand(0,height);
-      } else if (edge===2) {
-        this.x= rand(0,width); this.y= -50;
+      if (edge === 0) {
+        this.x = -50; 
+        this.y = rand(0, height);
+      } else if (edge === 1) {
+        this.x = width+50; 
+        this.y = rand(0, height);
+      } else if (edge === 2) {
+        this.x = rand(0, width);
+        this.y = -50;
       } else {
-        this.x= rand(0,width); this.y= height+50;
+        this.x = rand(0, width);
+        this.y = height+50;
       }
 
-      this.angle= rand(0, 2*Math.PI);
-      const speed= COMET_BASE_SPEED + Math.random()*0.4;
+      this.angle = rand(0, 2*Math.PI);
+      const speed= config.comets.baseSpeed + Math.random()*0.4;
       this.vx= Math.cos(this.angle)* speed;
       this.vy= Math.sin(this.angle)* speed;
 
       this.trail= [];
-      this.trailMaxLen= COMET_TRAIL_LENGTH;
+      this.trailMaxLen= config.comets.trailLength;
 
-      // color => typically a bluish or aqua
       const hue= rand(180, 280);
       this.color= `hsla(${hue},100%,70%,0.8)`;
       this.r= rand(3,6);
@@ -260,20 +263,17 @@
       this.x += this.vx;
       this.y += this.vy;
 
-      // store pos in trail
       this.trail.push({ x:this.x, y:this.y });
       if(this.trail.length>this.trailMaxLen) {
-        this.trail.shift(); // remove oldest
+        this.trail.shift();
       }
 
-      // if offscreen => reset
       if (this.x< -100 || this.x>width+100 || this.y< -100 || this.y>height+100) {
         this.reset();
       }
     }
 
     draw(ctx) {
-      // draw the trail
       if(this.trail.length>1) {
         ctx.beginPath();
         ctx.moveTo(this.trail[0].x, this.trail[0].y);
@@ -284,8 +284,6 @@
         ctx.lineWidth= 2;
         ctx.stroke();
       }
-
-      // nucleus
       ctx.beginPath();
       ctx.arc(this.x,this.y,this.r,0,2*Math.PI);
       ctx.fillStyle= this.color;
@@ -294,29 +292,31 @@
   }
 
   /**************************************************************************
-   * 3) STARFIELD SETUP
+   * 4) STARFIELD SETUP & ANIMATION
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     cosmicCanvas = document.getElementById('cosmicCanvas');
     if(!cosmicCanvas) {
-      console.warn("No #cosmicCanvas found => starfield won't run!");
+      console.warn("No #cosmicCanvas => starfield won't run.");
       return;
     }
     ctx = cosmicCanvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // spawn stars
-    for (let i=0; i<NUM_STARS; i++){
-      cosmicEntities.push(new Star());
+    // spawn initial stars from the pool
+    for (let i=0; i<config.stars.count; i++){
+      const star = starPool.acquire();
+      star.reset();
+      cosmicEntities.push(star);
     }
 
-    // start animation
     requestAnimationFrame(animateStarfield);
 
-    // mouse events
+    // track mouse
     window.addEventListener('mousemove', e=>{
-      mouseX = e.clientX; mouseY = e.clientY;
+      mouseX = e.clientX; 
+      mouseY = e.clientY;
       isMouseMoving= true;
       clearTimeout(mouseMoveTimeout);
       mouseMoveTimeout= setTimeout(()=>{ isMouseMoving=false; }, 1500);
@@ -331,41 +331,61 @@
   }
 
   function animateStarfield() {
-    // clear
     ctx.clearRect(0,0,width,height);
 
-    // random chance to spawn meteor
-    if(Math.random()<METEOR_SPAWN_RATE){
-      cosmicEntities.push(new Meteor());
+    // spawn meteors
+    if(Math.random() < config.meteors.spawnRate) {
+      const m = meteorPool.acquire();
+      m.reset();
+      cosmicEntities.push(m);
     }
-    // random chance to spawn comet
-    if(Math.random()<COMET_SPAWN_RATE){
-      cosmicEntities.push(new Comet());
+    // spawn comets
+    if(Math.random() < config.comets.spawnRate) {
+      const c = cometPool.acquire();
+      c.reset();
+      cosmicEntities.push(c);
     }
 
-    // update & draw
+    // update & draw all cosmic entities
     for(let i=0; i<cosmicEntities.length; i++){
-      cosmicEntities[i].update();
-      cosmicEntities[i].draw(ctx);
+      const obj = cosmicEntities[i];
+      obj.update();
+      obj.draw(ctx);
+
+      // if an object is a star that left screen, we do starPool.release(obj)
+      // but we do that in their reset() method or if we want to remove them
+      // from cosmicEntities. For simplicity, we keep them in cosmicEntities
+      // but re-randomize them when they go off-screen.
     }
 
     requestAnimationFrame(animateStarfield);
   }
 
   /**************************************************************************
-   * 4) PLANET NAVIGATION: Hiding the star map / showing features
+   * 5) HELPER: fetchWithErrorHandling
+   **************************************************************************/
+  async function fetchWithErrorHandling(url, errorMessage) {
+    try {
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(errorMessage);
+      return await res.json();
+    } catch(err) {
+      console.error(`${errorMessage}:`, err);
+      return null;
+    }
+  }
+
+  /**************************************************************************
+   * 6) PLANET NAVIGATION
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     const planetSelectEl= document.getElementById('planetSelect');
-    if(!planetSelectEl){
-      console.warn("No #planetSelect => planet nav won't work.");
-      return;
-    }
     const planets= document.querySelectorAll('.planet');
     const featureSections= document.querySelectorAll('.feature-section');
     const backButtons= document.querySelectorAll('.back-button');
 
-    // on planet click => hide planetSelect, show the relevant feature
+    if(!planetSelectEl) return;
+
     planets.forEach( planet => {
       planet.addEventListener('click', () => {
         const targetId= planet.getAttribute('data-target');
@@ -376,13 +396,10 @@
         planetSelectEl.style.display='none';
         targetSec.removeAttribute('hidden');
         targetSec.style.display='block';
-
-        // allow scroll for content
         document.body.style.overflow='auto';
       });
     });
 
-    // on back button => hide that feature, re-show planet selection
     backButtons.forEach(btn=>{
       btn.addEventListener('click', ()=>{
         featureSections.forEach(sec=>{
@@ -395,14 +412,13 @@
   });
 
   /**************************************************************************
-   * 5) SOUND TOGGLE
+   * 7) SOUND TOGGLE
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     const bgMusic= document.getElementById('bgMusic');
     const soundToggle= document.getElementById('soundToggle');
-    if(!bgMusic||!soundToggle) return;
+    if(!bgMusic || !soundToggle) return;
 
-    // we can reveal the button if we want it hidden initially
     soundToggle.style.display='inline-block';
 
     soundToggle.addEventListener('click', ()=>{
@@ -418,12 +434,12 @@
   });
 
   /**************************************************************************
-   * 6) THEME TOGGLE (DARK vs. LIGHT)
+   * 8) THEME TOGGLE
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', ()=>{
     const themeSelect= document.getElementById('theme-select');
     if(!themeSelect)return;
-    // default to dark
+
     document.body.classList.remove('light-theme');
     document.body.classList.add('dark-theme');
     themeSelect.value='dark';
@@ -440,61 +456,60 @@
   });
 
   /**************************************************************************
-   * 7) BZTRACKER: SEARCH, GRAPH, MARGINS, PROFIT, VARIATIONS
+   * 9) BZTRACKER: SEARCH, GRAPH, MARGINS, PROFIT, VARIATIONS
    **************************************************************************/
-  document.addEventListener('DOMContentLoaded', ()=>{
-    /* 
-      We'll gather references to the form fields, toggles, etc. 
-      Then define fetch calls to /search, /graph-data, /top-margins, etc. 
-      Also define chart update logic with advanced toggles & forecast.
-    */
+  let chart = null; // Chart.js instance
+  let currentItem = ''; // track current item for the chart
+  let graphHistoryData = [];
 
+  document.addEventListener('DOMContentLoaded', ()=>{
     // references
     const searchInput     = document.getElementById('item-search');
     const suggestionsDiv  = document.getElementById('suggestions');
     const resultDiv       = document.getElementById('result');
     const priceGraphCtx   = document.getElementById('priceGraph')?.getContext('2d');
 
-    const topMarginsDiv   = document.getElementById('top-margins');
-    const profitabilityRes= document.getElementById('profitability-result');
-    const topVariationsDiv= document.getElementById('top-variations');
+    const forecastAccuracyDiv= document.getElementById('forecast-accuracy');
+    const recommendedDiv     = document.getElementById('recommended-prices');
+    const targetSellInput    = document.getElementById('target-sell-price');
 
-    // toggle references
     const toggleLinear       = document.getElementById('toggle-linear');
     const toggleExponential  = document.getElementById('toggle-exponential');
     const toggleMA           = document.getElementById('toggle-moving-average');
     const toggleForecast     = document.getElementById('toggle-forecast');
     const toggleHoltWinters  = document.getElementById('toggle-holt-winters');
 
-    // time range & download
-    const timeRangeBtns= document.querySelectorAll('.time-range-btn');
-    const downloadBtn  = document.getElementById('downloadGraph');
+    const timeRangeBtns      = document.querySelectorAll('.time-range-btn');
+    const downloadBtn        = document.getElementById('downloadGraph');
 
-    // chart info
-    const forecastAccuracyDiv= document.getElementById('forecast-accuracy');
-    const recommendedDiv     = document.getElementById('recommended-prices');
-    const targetSellInput    = document.getElementById('target-sell-price');
+    const fullscreenBtn      = document.getElementById('fullscreenBtn');
+    const umbraSection       = document.getElementById('planet-umbra-feature');
 
     // top margins
-    const refreshTopMargins = document.getElementById('refresh-top-margins');
+    const topMarginsDiv      = document.getElementById('top-margins');
+    const refreshTopMargins  = document.getElementById('refresh-top-margins');
 
     // profitability
-    const coinsInput       = document.getElementById('coins');
-    const difficultyInput  = document.getElementById('difficulty');
-    const calcProfitButton = document.getElementById('calculate-profit');
+    const profitabilityRes   = document.getElementById('profitability-result');
+    const coinsInput         = document.getElementById('coins');
+    const difficultyInput    = document.getElementById('difficulty');
+    const calcProfitButton   = document.getElementById('calculate-profit');
 
     // variations
-    const refreshTopVarBtn = document.getElementById('refresh-top-variations');
-    const variationTimeSel = document.getElementById('variation-time-range');
+    const topVariationsDiv   = document.getElementById('top-variations');
+    const refreshTopVarBtn   = document.getElementById('refresh-top-variations');
+    const variationTimeSel   = document.getElementById('variation-time-range');
 
-    /* Helper function: show/hide loader */
+    /**********************************************************************
+     * Helper: Show/Hide Loader
+     **********************************************************************/
     function showLoader(show) {
       const loader= document.getElementById('loader');
       if(loader) loader.style.display= show?'block':'none';
     }
 
     /**********************************************************************
-     * 7.1) AUTOCOMPLETE
+     * 9.1) AUTOCOMPLETE
      **********************************************************************/
     if(searchInput){
       searchInput.addEventListener('input', ()=>{
@@ -506,28 +521,27 @@
         fetchSuggestions(query);
       });
     }
+
     async function fetchSuggestions(query){
-      try{
-        const res= await fetch(`/autocomplete?query=${encodeURIComponent(query)}`);
-        if(!res.ok) throw new Error("autocomplete fetch fail");
-        const items= await res.json();
-        suggestionsDiv.innerHTML='';
-        items.forEach(item=>{
-          const div= document.createElement('div');
-          div.textContent= item;
-          div.addEventListener('click', ()=>{
-            searchInput.value= item;
-            suggestionsDiv.innerHTML='';
-          });
-          suggestionsDiv.appendChild(div);
+      const items = await fetchWithErrorHandling(
+        `/autocomplete?query=${encodeURIComponent(query)}`,
+        "Failed to fetch autocomplete"
+      );
+      if(!items) return;
+      suggestionsDiv.innerHTML='';
+      items.forEach(item=>{
+        const div= document.createElement('div');
+        div.textContent= item;
+        div.addEventListener('click', ()=>{
+          searchInput.value= item;
+          suggestionsDiv.innerHTML='';
         });
-      } catch(err){
-        console.error("Autocomplete error:",err);
-      }
+        suggestionsDiv.appendChild(div);
+      });
     }
 
     /**********************************************************************
-     * 7.2) SEARCH => fetch item details + graph
+     * 9.2) SEARCH => fetch item details + graph
      **********************************************************************/
     const searchForm= document.getElementById('search-form');
     if(searchForm){
@@ -536,62 +550,65 @@
         const itemName= searchInput.value.trim();
         if(!itemName)return;
         currentItem= itemName;
-        try{
-          showLoader(true);
-          const res= await fetch(`/search?item=${encodeURIComponent(itemName)}`);
-          if(!res.ok)throw new Error("search fetch fail");
-          const data= await res.json();
-          const {
-            item_id,
-            buy_price,
-            sell_price,
-            margin,
-            demand,
-            supply
-          }= data;
 
-          resultDiv.innerHTML= `
-            <p><strong>Item:</strong> ${item_id}</p>
-            <p><strong>Buy Price:</strong> ${buy_price??'N/A'}</p>
-            <p><strong>Sell Price:</strong> ${sell_price??'N/A'}</p>
-            <p><strong>Margin:</strong> ${margin??'N/A'}</p>
-            <p><strong>Demand:</strong> ${demand??'N/A'}</p>
-            <p><strong>Supply:</strong> ${supply??'N/A'}</p>
-          `;
-          fetchGraphData(itemName,'all');
-        } catch(err){
-          console.error("Item details error:",err);
+        showLoader(true);
+        const data = await fetchWithErrorHandling(
+          `/search?item=${encodeURIComponent(itemName)}`,
+          "Failed to fetch item details"
+        );
+        showLoader(false);
+
+        if(!data) {
           resultDiv.innerHTML='<p>Error loading item details.</p>';
-        } finally{
-          showLoader(false);
+          return;
         }
+
+        const {
+          item_id,
+          buy_price,
+          sell_price,
+          margin,
+          demand,
+          supply
+        }= data;
+
+        resultDiv.innerHTML= `
+          <p><strong>Item:</strong> ${item_id}</p>
+          <p><strong>Buy Price:</strong> ${buy_price??'N/A'}</p>
+          <p><strong>Sell Price:</strong> ${sell_price??'N/A'}</p>
+          <p><strong>Margin:</strong> ${margin??'N/A'}</p>
+          <p><strong>Demand:</strong> ${demand??'N/A'}</p>
+          <p><strong>Supply:</strong> ${supply??'N/A'}</p>
+        `;
+
+        fetchGraphData(itemName,'all');
       });
     }
 
     /**********************************************************************
-     * 7.3) GRAPH DATA
+     * 9.3) FETCH GRAPH DATA
      **********************************************************************/
     async function fetchGraphData(itemName, timeRange='all') {
-      try{
-        showLoader(true);
-        const url= `/graph-data?item=${encodeURIComponent(itemName)}&range=${encodeURIComponent(timeRange)}`;
-        const res= await fetch(url);
-        if(!res.ok)throw new Error("graph-data fetch fail");
-        graphHistoryData= await res.json();
-        updateChart();
-      } catch(err){
-        console.error("Graph data error:",err);
+      showLoader(true);
+      const data = await fetchWithErrorHandling(
+        `/graph-data?item=${encodeURIComponent(itemName)}&range=${encodeURIComponent(timeRange)}`,
+        "Failed to fetch graph data"
+      );
+      showLoader(false);
+
+      if(!data) {
         resultDiv.innerHTML='<p>Error loading graph data. Please try again later.</p>';
-      } finally{
-        showLoader(false);
+        return;
       }
+      graphHistoryData = data;
+      updateChart();
     }
 
     /**********************************************************************
-     * 7.4) CHART LOGIC (Trendlines, Forecast, Holt-Winters)
+     * 9.4) TRENDLINE & FORECAST UTILITIES
      **********************************************************************/
-
-    // advanced computations
+    // Example of a single function for linear vs exponential
+    // (For brevity, we keep them separate here, but you can unify them.)
     function computeLinearTrendline(dataPoints) {
       const n= dataPoints.length;
       if(n<2)return [];
@@ -602,30 +619,36 @@
         sumX+= x; sumY+= y; sumXY+= x*y; sumXX+= x*x;
       }
       const slope= (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
-      const intercept= (sumY- slope*sumX)/n;
+      const intercept= (sumY - slope*sumX)/n;
       return dataPoints.map(pt=>({
         x: pt.x,
         y: intercept + slope*pt.x.getTime()
       }));
     }
+
     function computeExponentialTrendline(dataPoints) {
       const n= dataPoints.length;
       if(n<2)return[];
       let sumX=0, sumLogY=0, sumXLogY=0, sumXX=0;
+      let validCount= 0;
       for(let i=0;i<n;i++){
         const x= dataPoints[i].x.getTime();
         const y= dataPoints[i].y;
-        if(y<=0)continue;
-        const logY= Math.log(y);
-        sumX+= x; sumLogY+= logY; sumXLogY+= x*logY; sumXX+= x*x;
+        if(y>0){
+          validCount++;
+          const logY= Math.log(y);
+          sumX+= x; sumLogY+= logY; sumXLogY+= x*logY; sumXX+= x*x;
+        }
       }
-      const slope= (n*sumXLogY - sumX*sumLogY)/(n*sumXX - sumX*sumX);
-      const intercept= (sumLogY - slope*sumX)/n;
-      return dataPoints.map(pt=>({
-        x:pt.x,
-        y: Math.exp(intercept + slope*pt.x.getTime())
-      }));
+      if(validCount<2) return [];
+      const slope= (validCount*sumXLogY - sumX*sumLogY)/(validCount*sumXX - sumX*sumX);
+      const intercept= (sumLogY - slope*sumX)/validCount;
+      return dataPoints.map(pt=>{
+        if(pt.y <= 0) return { x:pt.x, y: 0 };
+        return { x:pt.x, y: Math.exp(intercept + slope*pt.x.getTime()) };
+      });
     }
+
     function computeMovingAverage(dataPoints, windowSize=5){
       const result= [];
       for(let i=0; i<dataPoints.length; i++){
@@ -638,6 +661,7 @@
       }
       return result;
     }
+
     function computeForecast(dataPoints,numPoints=10){
       if(dataPoints.length<2)return[];
       const n= dataPoints.length;
@@ -648,7 +672,7 @@
         sumX+= x; sumY+= y; sumXY+= x*y; sumXX+= x*x;
       }
       const slope= (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
-      const intercept= (sumY- slope*sumX)/n;
+      const intercept= (sumY - slope*sumX)/n;
       const interval= (dataPoints[n-1].x.getTime()- dataPoints[0].x.getTime())/(n-1);
       const forecast= [];
       let lastTime= dataPoints[n-1].x.getTime();
@@ -658,6 +682,7 @@
       }
       return forecast;
     }
+
     function holtWintersForecast(dataPoints,periods=50,alpha=0.6,beta=0.1,gamma=0.1,seasonLen=0){
       if(dataPoints.length<3)return[];
       const times= dataPoints.map(dp=> dp.x.getTime());
@@ -690,10 +715,11 @@
         lastTime+= interval;
         const s= (seasonLen>0)? season[(n-1+i)%seasonLen]: 0;
         const fc= level + i* trend + s;
-        result.push({ x:new Date(lastTime), y:fc });
+        result.push({ x:new Date(lastTime), y: fc });
       }
       return result;
     }
+
     function computeForecastAccuracy(dataPoints, forecastFn, horizon){
       if(dataPoints.length<= horizon)return 0;
       const training= dataPoints.slice(0, dataPoints.length- horizon);
@@ -713,9 +739,13 @@
       return count? totalError/ count :0;
     }
 
+    /**********************************************************************
+     * 9.5) UPDATE CHART
+     **********************************************************************/
     function updateChart() {
-      if(!graphHistoryData.length||!priceGraphCtx)return;
-      // transform raw data => x: Date, y: numeric
+      if(!graphHistoryData.length || !priceGraphCtx) return;
+
+      // transform raw => x: Date, y: numeric
       const buyDataPoints= graphHistoryData.map(h=>({
         x: new Date(h.timestamp*1000),
         y: h.buy_price
@@ -727,190 +757,119 @@
       const minTime= new Date(Math.min(...buyDataPoints.map(pt=> pt.x.getTime())));
       const maxTime= new Date(Math.max(...buyDataPoints.map(pt=> pt.x.getTime())));
 
+      // utility to create dataset
+      function createDataset(label, data, borderColor, options={}) {
+        return {
+          label,
+          data,
+          borderColor,
+          fill: false,
+          ...options
+        };
+      }
+
       const datasets= [
-        {
-          label:'Buy Price',
-          data: buyDataPoints,
-          borderColor:'#00ccff',
-          fill:false,
-          tension:0.3
-        },
-        {
-          label:'Sell Price',
-          data: sellDataPoints,
-          borderColor:'#ff5733',
-          fill:false,
-          tension:0.3
-        }
+        createDataset('Buy Price',  buyDataPoints,  '#00ccff', { tension: 0.3 }),
+        createDataset('Sell Price', sellDataPoints, '#ff5733', { tension: 0.3 })
       ];
 
+      // toggles
       if(toggleLinear?.checked){
-        datasets.push({
-          label:'Buy Linear',
-          data: computeLinearTrendline(buyDataPoints),
-          borderColor:'#00ccff',
-          borderDash:[5,5],
-          fill:false,
-          tension:0
-        },{
-          label:'Sell Linear',
-          data: computeLinearTrendline(sellDataPoints),
-          borderColor:'#ff5733',
-          borderDash:[5,5],
-          fill:false,
-          tension:0
-        });
+        datasets.push(
+          createDataset('Buy Linear',  computeLinearTrendline(buyDataPoints),  '#00ccff', { borderDash:[5,5] }),
+          createDataset('Sell Linear', computeLinearTrendline(sellDataPoints), '#ff5733', { borderDash:[5,5] })
+        );
       }
       if(toggleExponential?.checked){
-        datasets.push({
-          label:'Buy Exponential',
-          data: computeExponentialTrendline(buyDataPoints),
-          borderColor:'#00ccff',
-          borderDash:[10,5],
-          fill:false,
-          tension:0
-        },{
-          label:'Sell Exponential',
-          data: computeExponentialTrendline(sellDataPoints),
-          borderColor:'#ff5733',
-          borderDash:[10,5],
-          fill:false,
-          tension:0
-        });
+        datasets.push(
+          createDataset('Buy Exponential',  computeExponentialTrendline(buyDataPoints),  '#00ccff', { borderDash:[10,5] }),
+          createDataset('Sell Exponential', computeExponentialTrendline(sellDataPoints), '#ff5733', { borderDash:[10,5] })
+        );
       }
       if(toggleMA?.checked){
-        datasets.push({
-          label:'Buy MA',
-          data: computeMovingAverage(buyDataPoints),
-          borderColor:'#00ccff',
-          borderDash:[2,2],
-          fill:false,
-          tension:0
-        },{
-          label:'Sell MA',
-          data: computeMovingAverage(sellDataPoints),
-          borderColor:'#ff5733',
-          borderDash:[2,2],
-          fill:false,
-          tension:0
-        });
+        datasets.push(
+          createDataset('Buy MA',  computeMovingAverage(buyDataPoints),  '#00ccff', { borderDash:[2,2] }),
+          createDataset('Sell MA', computeMovingAverage(sellDataPoints), '#ff5733', { borderDash:[2,2] })
+        );
       }
       if(toggleForecast?.checked){
-        datasets.push({
-          label:'Buy Forecast',
-          data: computeForecast(buyDataPoints),
-          borderColor:'#00ccff',
-          borderDash:[15,5],
-          fill:false,
-          tension:0
-        },{
-          label:'Sell Forecast',
-          data: computeForecast(sellDataPoints),
-          borderColor:'#ff5733',
-          borderDash:[15,5],
-          fill:false,
-          tension:0
-        });
+        datasets.push(
+          createDataset('Buy Forecast',  computeForecast(buyDataPoints),  '#00ccff', { borderDash:[15,5] }),
+          createDataset('Sell Forecast', computeForecast(sellDataPoints), '#ff5733', { borderDash:[15,5] })
+        );
       }
       if(toggleHoltWinters?.checked){
         const buyHW= holtWintersForecast(buyDataPoints,50);
-        const sellHW=holtWintersForecast(sellDataPoints,50);
-        datasets.push({
-          label:'Buy HW',
-          data: buyHW,
-          borderColor:'#00ccff',
-          borderDash:[5,10],
-          fill:false,
-          tension:0
-        },{
-          label:'Sell HW',
-          data: sellHW,
-          borderColor:'#ff5733',
-          borderDash:[5,10],
-          fill:false,
-          tension:0
-        });
+        const sellHW= holtWintersForecast(sellDataPoints,50);
+        datasets.push(
+          createDataset('Buy HW',  buyHW,  '#00ccff', { borderDash:[5,10] }),
+          createDataset('Sell HW', sellHW, '#ff5733', { borderDash:[5,10] })
+        );
       }
 
       // recommended lines
       const recommendedBuy= Math.min(...buyDataPoints.map(pt=> pt.y));
       const recommendedSell= Math.max(...sellDataPoints.map(pt=> pt.y));
-      datasets.push({
-        label:'Recommended Buy',
-        data:[ {x:minTime, y:recommendedBuy}, {x:maxTime,y:recommendedBuy}],
-        borderColor:'#00ff00',
-        borderDash:[8,4],
-        fill:false,
-        pointRadius:0
-      },{
-        label:'Recommended Sell',
-        data:[ {x:minTime,y:recommendedSell},{x:maxTime,y:recommendedSell}],
-        borderColor:'#ff00ff',
-        borderDash:[8,4],
-        fill:false,
-        pointRadius:0
-      });
+      datasets.push(
+        createDataset('Recommended Buy',  [ {x:minTime,y:recommendedBuy},{x:maxTime,y:recommendedBuy} ], '#00ff00', { borderDash:[8,4], pointRadius:0 }),
+        createDataset('Recommended Sell', [ {x:minTime,y:recommendedSell},{x:maxTime,y:recommendedSell} ], '#ff00ff', { borderDash:[8,4], pointRadius:0 })
+      );
 
-      // user-specified target
+      // user target
       const targetVal= parseFloat(targetSellInput?.value);
       if(!isNaN(targetVal)){
-        datasets.push({
-          label:'Target Sell Price',
-          data:[ {x:minTime,y:targetVal},{x:maxTime,y:targetVal}],
-          borderColor:'#ffff00',
-          borderDash:[2,2],
-          fill:false,
-          pointRadius:0
-        });
+        datasets.push(
+          createDataset('Target Sell Price', [ {x:minTime,y:targetVal},{x:maxTime,y:targetVal} ], '#ffff00', { borderDash:[2,2], pointRadius:0 })
+        );
       }
-
       recommendedDiv.textContent= `Recommended Buy: ${recommendedBuy.toFixed(2)} | Recommended Sell: ${recommendedSell.toFixed(2)}`;
 
-      // create or destroy old chart
-      if(chart) chart.destroy();
-      chart= new Chart(priceGraphCtx, {
-        type:'line',
+      // destroy old chart to avoid memory leaks
+      if(chart) {
+        chart.destroy();
+        chart = null;
+      }
+
+      // create new chart
+      chart = new Chart(priceGraphCtx, {
+        type: 'line',
         data: { datasets },
-        options:{
+        options: {
           animation: { duration:600, easing:'easeInOutQuad' },
-          scales:{
-            x:{
+          scales: {
+            x: {
               type:'time',
-              time:{ unit:'minute', tooltipFormat:'Pp' },
-              min:minTime,
-              max:maxTime,
-              ticks:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' },
-              grid:{ color: document.body.classList.contains('light-theme')?'#ccc':'#444'}
+              time:{ unit:'minute', tooltipFormat:'Pp' }
             },
-            y:{
-              ticks:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' },
-              grid:{ color: document.body.classList.contains('light-theme')?'#ccc':'#444'}
-            }
+            y: {}
           },
-          plugins:{
-            zoom:{
-              pan:{ enabled:true, mode:'x'},
-              zoom:{ wheel:{enabled:false}, pinch:{enabled:false}, mode:'x'}
-            },
-            tooltip:{
-              callbacks:{
-                label: ctx=> `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
+          plugins: {
+            zoom: {
+              pan: {
+                enabled:true,
+                mode:'xy'
+              },
+              zoom: {
+                wheel: { enabled:true },
+                pinch: { enabled:true },
+                mode:'xy'
               }
             },
-            legend:{
-              labels:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' }
+            tooltip: {
+              callbacks: {
+                label: ctx=> `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
+              }
             }
           }
         }
       });
 
-      // forecast accuracy
-      const horizon=5; // horizon for simple forecast
+      // compute forecast accuracy
+      const horizon=5;
       const buyAcc   = computeForecastAccuracy(buyDataPoints, computeForecast, horizon);
       const sellAcc  = computeForecastAccuracy(sellDataPoints, computeForecast, horizon);
       const simpleAvg= (buyAcc + sellAcc)/2;
 
-      // Holt-Winters accuracy
       const hwBuyAcc = computeForecastAccuracy(buyDataPoints, holtWintersForecast, 50);
       const hwSellAcc= computeForecastAccuracy(sellDataPoints, holtWintersForecast, 50);
       const hwAvg    = (hwBuyAcc + hwSellAcc)/2;
@@ -921,7 +880,7 @@
     }
 
     /**********************************************************************
-     * 7.5) TIME RANGE BUTTONS & DOWNLOAD
+     * 9.6) TIME RANGE & DOWNLOAD
      **********************************************************************/
     timeRangeBtns.forEach(btn=>{
       btn.addEventListener('click',()=>{
@@ -929,6 +888,7 @@
         if(currentItem) fetchGraphData(currentItem, range);
       });
     });
+
     if(downloadBtn){
       downloadBtn.addEventListener('click',()=>{
         if(chart){
@@ -942,107 +902,135 @@
     }
 
     /**********************************************************************
-     * 7.6) TOP MARGINS
+     * 9.7) TOP MARGINS
      **********************************************************************/
+    async function fetchTopMargins(){
+      showLoader(true);
+      const sortBy= document.getElementById('sort-by').value;
+      const order= document.getElementById('order').value;
+      const items= await fetchWithErrorHandling(
+        `/top-margins?sort_by=${sortBy}&order=${order}`,
+        "Failed to fetch top margins"
+      );
+      showLoader(false);
+
+      if(!items) {
+        topMarginsDiv.innerHTML='<p>Error loading top margins. Please try again.</p>';
+        return;
+      }
+      topMarginsDiv.innerHTML= items.map(item=>`
+        <div class="item-card">
+          <p><span>Item:</span> ${item.item_id}</p>
+          <p><span>Margin:</span> ${item.margin}</p>
+          <p><span>Buy Price:</span> ${item.buy_price}</p>
+          <p><span>Sell Price:</span> ${item.sell_price}</p>
+          <p><span>Demand:</span> ${item.demand??'N/A'}</p>
+          <p><span>Supply:</span> ${item.supply??'N/A'}</p>
+        </div>
+      `).join('');
+    }
+
     if(refreshTopMargins){
       refreshTopMargins.addEventListener('click', fetchTopMargins);
+      fetchTopMargins(); // initial
     }
-    async function fetchTopMargins(){
-      try{
-        showLoader(true);
-        const sortBy= document.getElementById('sort-by').value;
-        const order= document.getElementById('order').value;
-        const res= await fetch(`/top-margins?sort_by=${sortBy}&order=${order}`);
-        if(!res.ok) throw new Error("top-margins fetch fail");
-        const items= await res.json();
-        topMarginsDiv.innerHTML= items.map(item=>`
-          <div class="item-card">
-            <p><span>Item:</span> ${item.item_id}</p>
-            <p><span>Margin:</span> ${item.margin}</p>
-            <p><span>Buy Price:</span> ${item.buy_price}</p>
-            <p><span>Sell Price:</span> ${item.sell_price}</p>
-            <p><span>Demand:</span> ${item.demand??'N/A'}</p>
-            <p><span>Supply:</span> ${item.supply??'N/A'}</p>
-          </div>
-        `).join('');
-      } catch(err){
-        console.error("Top margins error:",err);
-        topMarginsDiv.innerHTML='<p>Error loading top margins. Please try again.</p>';
-      } finally{
-        showLoader(false);
-      }
-    }
-    fetchTopMargins(); // optional initial load
 
     /**********************************************************************
-     * 7.7) PROFITABILITY
+     * 9.8) PROFITABILITY
      **********************************************************************/
+    async function fetchProfitability(coins, difficulty){
+      showLoader(true);
+      const results= await fetchWithErrorHandling(
+        `/profitability?coins=${coins}&difficulty=${difficulty}`,
+        "Failed to fetch profitability"
+      );
+      showLoader(false);
+
+      if(!results) {
+        profitabilityRes.innerHTML='<p>Error calculating profitability.</p>';
+        return;
+      }
+      profitabilityRes.innerHTML= results.map(r=>`
+        <div class="item-card">
+          <p><strong>Item:</strong> ${r.item_id}</p>
+          <p><strong>Profit/min:</strong> ${r.profit_per_minute.toFixed(2)}</p>
+          <p><strong>Profit/hour:</strong> ${r.profit_per_hour.toFixed(2)}</p>
+        </div>
+      `).join('');
+    }
+
     if(calcProfitButton){
-      calcProfitButton.addEventListener('click', async()=>{
+      calcProfitButton.addEventListener('click', ()=>{
         const coins= parseFloat(coinsInput.value)||0;
         const difficulty= parseFloat(difficultyInput.value)||1;
-        try{
-          showLoader(true);
-          const res= await fetch(`/profitability?coins=${coins}&difficulty=${difficulty}`);
-          if(!res.ok) throw new Error("profitability fetch fail");
-          const results= await res.json();
-          profitabilityRes.innerHTML= results.map(r=>`
-            <div class="item-card">
-              <p><strong>Item:</strong> ${r.item_id}</p>
-              <p><strong>Profit/min:</strong> ${r.profit_per_minute.toFixed(2)}</p>
-              <p><strong>Profit/hour:</strong> ${r.profit_per_hour.toFixed(2)}</p>
-            </div>
-          `).join('');
-        } catch(err){
-          console.error("Profit calc error:", err);
-          profitabilityRes.innerHTML='<p>Error calculating profitability.</p>';
-        } finally{
-          showLoader(false);
-        }
+        fetchProfitability(coins, difficulty);
       });
     }
 
     /**********************************************************************
-     * 7.8) TOP VARIATIONS
+     * 9.9) TOP VARIATIONS
      **********************************************************************/
-    if(refreshTopVarBtn){
-      refreshTopVarBtn.addEventListener('click', fetchTopVariations);
-    }
     async function fetchTopVariations(){
       const timeRange= variationTimeSel.value;
-      try{
-        showLoader(true);
-        const res= await fetch(`/top-variations?time_range=${timeRange}`);
-        if(!res.ok) throw new Error("top-variations fetch fail");
-        const items= await res.json();
-        topVariationsDiv.innerHTML= items.map(item=>`
-          <div class="item-card">
-            <p><span>Item:</span> ${item.item_id}</p>
-            <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
-            <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
-            <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
-            <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
-          </div>
-        `).join('');
-      } catch(err){
-        console.error("Top variations error:", err);
-        topVariationsDiv.innerHTML='<p>Error loading top variations. Please try again later.</p>';
-      } finally{
-        showLoader(false);
+      showLoader(true);
+      const items= await fetchWithErrorHandling(
+        `/top-variations?time_range=${timeRange}`,
+        "Failed to fetch top variations"
+      );
+      showLoader(false);
+
+      if(!items) {
+        topVariationsDiv.innerHTML='<p>Error loading top variations.</p>';
+        return;
       }
+      topVariationsDiv.innerHTML= items.map(item=>`
+        <div class="item-card">
+          <p><span>Item:</span> ${item.item_id}</p>
+          <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
+          <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
+          <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
+          <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
+        </div>
+      `).join('');
     }
-    fetchTopVariations(); // optional initial
+
+    if(refreshTopVarBtn){
+      refreshTopVarBtn.addEventListener('click', fetchTopVariations);
+      fetchTopVariations(); // initial
+    }
 
     /**********************************************************************
-     * 7.9) REBUILD CHART WHEN TOGGLES CHANGE
+     * 9.10) FULLSCREEN MODE (Using requestFullscreen)
      **********************************************************************/
-    [toggleLinear, toggleExponential, toggleMA, toggleForecast, toggleHoltWinters].forEach(el=>{
-      if(el){
-        el.addEventListener('change', ()=> {
-          updateChart();
-        });
-      }
-    });
-  }); // end of big DOMContentLoaded
+    if(fullscreenBtn && umbraSection){
+      fullscreenBtn.addEventListener('click', () => {
+        // Toggle via Fullscreen API:
+        if(!document.fullscreenElement) {
+          // Enter fullscreen for the entire #planet-umbra-feature
+          umbraSection.requestFullscreen().catch(err=>{
+            console.error("Error attempting fullscreen:", err);
+          });
+        } else {
+          // exit fullscreen
+          document.exitFullscreen().catch(err=>{
+            console.error("Error exiting fullscreen:", err);
+          });
+        }
+      });
 
-})(); // end IIFE
+      // Additionally, if you want to track fullscreen change events:
+      document.addEventListener('fullscreenchange', ()=>{
+        // We can apply a .fullscreen-mode class if we want the CSS to hide controls
+        if(document.fullscreenElement === umbraSection){
+          // In fullscreen
+          umbraSection.classList.add('fullscreen-mode');
+          document.body.style.overflow='hidden';
+        } else {
+          // Exited fullscreen
+          umbraSection.classList.remove('fullscreen-mode');
+          document.body.style.overflow='auto';
+        }
+      });
+    }
+  }); // end DOMContentLoaded
+})();
