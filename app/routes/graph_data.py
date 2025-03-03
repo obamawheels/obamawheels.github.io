@@ -1,7 +1,7 @@
-import os
 from flask import Blueprint, request, jsonify
 from influxdb_client import InfluxDBClient
 import time
+import os
 
 graph_data_bp = Blueprint('graph_data', __name__)
 
@@ -35,10 +35,12 @@ def graph_data():
 
         # Execute the query
         tables = query_api.query(query)
+        print (f"These are my tables:{tables}") #print the tables.
 
         # Process the results
         history = []
         for table in tables:
+            print (f"This is what is in table{table}")
             for record in table.records:
                 history.append({
                     "timestamp": record.get_time().timestamp(),  # Convert to Unix timestamp
@@ -47,6 +49,7 @@ def graph_data():
                 })
 
         client.close()
+        print (f"This is my history object{history}")
 
         return jsonify(history)
     except Exception as e:
