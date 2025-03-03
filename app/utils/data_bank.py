@@ -59,7 +59,6 @@ def fetch_all_data():
 
 # Function to write data to InfluxDB
 def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
-    logging.info(f"Attempting to write to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")
 
     try:
         client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
@@ -77,7 +76,6 @@ def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
         write_api.close()
         client.close()
 
-        logging.info(f"Successfully wrote data to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")
     except Exception as e:
         logging.error(f"Error writing data to InfluxDB: {e}")
 
@@ -92,18 +90,13 @@ def start_background_thread():
                 try:
                     tracker.update_data()
                     for item_id, item_data in tracker.data.items():
-                        logging.info(f"Item data for item_id {item_id}: {item_data}")  # Add this line
-                        # ADD THESE LOGS!
-                        logging.info(f"Quick status before extraction = {item_data.get('quick_status')}")
 
                         buy_price = item_data.get('quick_status',{}).get('buyPrice', 0)  # Default to 0 if 'buyPrice' is missing
                         sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing
-                        logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}")
 
                         timestamp = int(time.time())
                         save_data(item_id, buy_price, sell_price)
                         write_to_influxdb(item_id, buy_price, sell_price, timestamp)
-                        logging.info(f"Data successfully updated and saved to the database and InfluxDB: Item ID = {item_id}")
 
                 except Exception as e:
                     logging.error(f"Error updating data: {e}")
