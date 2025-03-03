@@ -3,18 +3,14 @@
 <head>
   <!--
     =================================================================================
-    |                      DESTINY-STYLE BZTRACKER — SUPER-EXPANDED                  |
+    |                   DESTINY-STYLE BZTRACKER — NORMAL LAYOUT                     |
     =================================================================================
-    This HTML references:
-      • A canvas-based star system behind everything
-      • 5 Planets (Umbra, Pyra, Astris, Borealis, Eclipse) w/ advanced animations
-      • Hidden feature sections for each planet
-      • Background music, advanced transitions, minimal top-level UI except the planets
-      • The “tons more visuals” approach
+    Planets are shown on load, smaller graph by default,
+    with a Fullscreen button to expand the chart if desired.
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cinematic BZTracker — Extended Star System</title>
+  <title>Cinematic BZTracker — Star System</title>
 
   <!-- Chart.js libraries for the Price Graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -29,8 +25,6 @@
     ===========================================================================
     |                       COSMIC CANVAS BACKDROP                            |
     ===========================================================================
-    A full-screen canvas for multi-layer star + meteor + comet rendering. 
-    We define #cosmicCanvas in styles.css, placed behind everything at z-index:-1.
   -->
   <canvas id="cosmicCanvas"></canvas>
 
@@ -38,38 +32,37 @@
     ===========================================================================
     |                         PLANET SELECT SCREEN                            |
     ===========================================================================
-    The user sees 5 clickable planets, each with intense color & animation.
-    On click, it transitions to a hidden section with real BZTracker features.
+    Shown by default. Each planet leads to its respective feature section.
   -->
   <section id="planetSelect" class="planet-select">
-    <!-- Center Planet => Umbra (Search + Graph) -->
+    <!-- Umbra => Search & Graph -->
     <div class="planet planet-umbra center-planet" data-target="planet-umbra-feature">
       <div class="planet-image"></div>
-      <div class="planet-name">Umbra</div>
+      <div class="planet-name">Search &amp; Graph</div>
     </div>
 
-    <!-- Pyra => Top Margins (Deep maroon vibe) -->
+    <!-- Pyra => Top Margins -->
     <div class="planet planet-pyra top-left" data-target="planet-pyra-feature">
       <div class="planet-image"></div>
-      <div class="planet-name">Pyra</div>
+      <div class="planet-name">Top Margins</div>
     </div>
 
-    <!-- Astris => Profitability (Subtle purple-teal vibe) -->
+    <!-- Astris => Profitability -->
     <div class="planet planet-astris top-right" data-target="planet-astris-feature">
       <div class="planet-image"></div>
-      <div class="planet-name">Astris</div>
+      <div class="planet-name">Profitability</div>
     </div>
 
-    <!-- Borealis => Top Variations (Dark navy vibe) -->
+    <!-- Borealis => Top Variations -->
     <div class="planet planet-borealis bottom-left" data-target="planet-borealis-feature">
       <div class="planet-image"></div>
-      <div class="planet-name">Borealis</div>
+      <div class="planet-name">Top Variations</div>
     </div>
 
-    <!-- Eclipse => Settings (Gray vibe) -->
+    <!-- Eclipse => Settings -->
     <div class="planet planet-eclipse bottom-right" data-target="planet-eclipse-feature">
       <div class="planet-image"></div>
-      <div class="planet-name">Eclipse</div>
+      <div class="planet-name">Settings</div>
     </div>
   </section>
 
@@ -77,13 +70,12 @@
     ===========================================================================
     |                    FEATURE SECTIONS (One per Planet)                    |
     ===========================================================================
-    Each hidden by default, revealed on planet click. 
-    All remain behind a “Back to Star Map” button to return.
+    Each hidden by default, shown upon clicking the corresponding planet.
   -->
 
-  <!-- 1) Umbra: Search + Graph -->
+  <!-- Umbra => Search & Graph -->
   <section id="planet-umbra-feature" class="feature-section umbra-theme" hidden>
-    <h1>Umbra — Search & Graph</h1>
+    <h1>Search &amp; Graph</h1>
     <div class="feature-content">
       <h2>Search</h2>
       <form id="search-form">
@@ -96,8 +88,9 @@
 
       <h2>Price Graph</h2>
       <p class="graph-subtitle">
-        Interact with advanced forecasting, recommended buy/sell lines, and various trend toggles.
+        This is a smaller version by default. Click “Fullscreen” for the large version.
       </p>
+
       <div class="graph-layout">
         <div id="chart-area">
           <canvas id="priceGraph"></canvas>
@@ -105,6 +98,7 @@
           <div id="recommended-prices"></div>
         </div>
         <div id="graph-controls">
+          <!-- Time range buttons -->
           <div class="time-range-buttons">
             <button class="time-range-btn" data-range="1h">1 Hour</button>
             <button class="time-range-btn" data-range="24h">1 Day</button>
@@ -112,59 +106,60 @@
             <button class="time-range-btn" data-range="1y">1 Year</button>
             <button class="time-range-btn" data-range="all">All Time</button>
           </div>
-          <div id="trendline-controls">
-            <div class="toggle-group">
-              <span>Linear</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle-linear" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="toggle-group">
-              <span>Exponential</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle-exponential">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="toggle-group">
-              <span>Moving Avg</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle-moving-average">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="toggle-group">
-              <span>Forecast</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle-forecast">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="toggle-group">
-              <span>Holt‑Winters</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle-holt-winters">
-                <span class="slider"></span>
-              </label>
-            </div>
+
+          <!-- Trend toggles -->
+          <div class="toggle-group">
+            <span>Linear</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-linear" checked>
+              <span class="slider"></span>
+            </label>
           </div>
-          <div id="extra-controls">
-            <button id="downloadGraph" class="time-range-btn">Download Graph</button>
-            <div class="target-sell">
-              <label for="target-sell-price">Target Sell Price:</label>
-              <input type="number" id="target-sell-price" placeholder="Enter target" step="0.01"/>
-            </div>
+          <div class="toggle-group">
+            <span>Exponential</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-exponential">
+              <span class="slider"></span>
+            </label>
           </div>
-        </div>
-      </div>
+          <div class="toggle-group">
+            <span>Moving Avg</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-moving-average">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-group">
+            <span>Forecast</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-forecast">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-group">
+            <span>Holt‑Winters</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-holt-winters">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Buttons: Fullscreen, Download, Target Sell -->
+          <button id="fullscreenBtn" class="time-range-btn">Fullscreen</button>
+          <button id="downloadGraph" class="time-range-btn">Download Graph</button>
+          <div class="target-sell">
+            <label for="target-sell-price">Target Sell Price:</label>
+            <input type="number" id="target-sell-price" placeholder="Enter target" step="0.01"/>
+          </div>
+        </div> <!-- end #graph-controls -->
+      </div> <!-- .graph-layout -->
     </div>
     <button class="back-button">Return to Star Map</button>
   </section>
 
-  <!-- 2) Pyra: Top Margins -->
+  <!-- Pyra => Top Margins -->
   <section id="planet-pyra-feature" class="feature-section pyra-theme" hidden>
-    <h1>Pyra — Top Margins</h1>
+    <h1>Top Margins</h1>
     <div class="feature-content">
       <label for="sort-by">Sort by:</label>
       <select id="sort-by">
@@ -185,9 +180,9 @@
     <button class="back-button">Return to Star Map</button>
   </section>
 
-  <!-- 3) Astris: Profitability -->
+  <!-- Astris => Profitability -->
   <section id="planet-astris-feature" class="feature-section astris-theme" hidden>
-    <h1>Astris — Profitability</h1>
+    <h1>Profitability</h1>
     <div class="feature-content">
       <div style="margin-bottom:10px;">
         <label for="coins">Coins:</label>
@@ -201,9 +196,9 @@
     <button class="back-button">Return to Star Map</button>
   </section>
 
-  <!-- 4) Borealis: Top Variations -->
+  <!-- Borealis => Top Variations -->
   <section id="planet-borealis-feature" class="feature-section borealis-theme" hidden>
-    <h1>Borealis — Top Variations</h1>
+    <h1>Top Variations</h1>
     <div class="feature-content">
       <label for="variation-time-range">Time Range:</label>
       <select id="variation-time-range">
@@ -217,9 +212,9 @@
     <button class="back-button">Return to Star Map</button>
   </section>
 
-  <!-- 5) Eclipse: Settings -->
+  <!-- Eclipse => Settings -->
   <section id="planet-eclipse-feature" class="feature-section eclipse-theme" hidden>
-    <h1>Eclipse — Settings</h1>
+    <h1>Settings</h1>
     <div class="feature-content">
       <label for="theme-select"><strong>Choose Theme:</strong></label>
       <select id="theme-select">
@@ -243,7 +238,7 @@
   ></audio>
   <button id="soundToggle" class="sound-btn" style="display:none;">🔇</button>
 
-  <!-- Finally, link to our script -->
+  <!-- Link to our script -->
   <script src="/static/script.js" defer></script>
 </body>
 </html>
