@@ -1,523 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BZTracker</title>
-  <!-- Load Chart.js, date adapter, and the zoom plugin (for panning only) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1" defer></script>
-  <style>
-    /***********************************************
-     *               THEME VARIABLES
-     ***********************************************/
-    :root {
-      --transition-speed: 0.3s;
-      --font-family: "Roboto", sans-serif;
-    }
-    /* Dark Theme (Crying Obsidian) */
-    body.dark-theme {
-      --bg-color: #0b0c10;
-      --sidebar-bg: #151528;
-      --accent-color: #8a2be2;
-      --text-color: #e6e6fa;
-      --card-bg: #1d1d2b;
-      --particle-color: rgba(138,43,226, 0.5);
-    }
-    /* Light Theme (Ice) – Frosty, dynamic look with snow & icicles */
-    body.light-theme {
-      --bg-color: #e0f7fa;
-      --sidebar-bg: rgba(255,255,255,0.9);
-      --accent-color: #81d4fa;
-      --text-color: #01579b;
-      --card-bg: rgba(255,255,255,0.8);
-      --particle-color: rgba(129,212,250, 0.5);
-      background: linear-gradient(135deg, #a0cfe9, #e0f7fa);
-      background-size: 400% 400%;
-      animation: frostShimmer 10s ease infinite;
-    }
-    @keyframes frostShimmer {
-      0% { background-position: 0 0; }
-      100% { background-position: -200% 0; }
-    }
-    /***********************************************
-     *            GLOBAL / BASE STYLES
-     ***********************************************/
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--font-family);
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      transition: background-color var(--transition-speed), color var(--transition-speed);
-      overflow-x: hidden;
-      position: relative;
-    }
-    /***********************************************
-     *        PARTICLE CONTAINER & ANIMATION
-     ***********************************************/
-    #particle-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
-    }
-    /* Icicles for the Light (Ice) theme */
-    #icicles {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 60px;
-      pointer-events: none;
-      z-index: 999;
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-    }
-    body.dark-theme #icicles { display: none; }
-    #icicles .icicle {
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 60px solid #fff;
-      opacity: 0.8;
-    }
-    /***********************************************
-     *           SIDEBAR & MENU / SOUND TOGGLES
-     ***********************************************/
-    #menuToggle, #soundToggle {
-      position: fixed;
-      top: 15px;
-      background: none;
-      color: var(--accent-color);
-      border: 2px solid var(--accent-color);
-      padding: 8px 12px;
-      font-size: 18px;
-      border-radius: 4px;
-      cursor: pointer;
-      z-index: 1001;
-      transition: background var(--transition-speed), color var(--transition-speed);
-    }
-    #menuToggle:hover, #soundToggle:hover {
-      background: var(--accent-color);
-      color: #fff;
-      text-shadow: 0 0 5px var(--accent-color);
-    }
-    #menuToggle { left: 15px; }
-    #soundToggle { right: 15px; }
-    #sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 240px;
-      height: 100%;
-      background: var(--sidebar-bg);
-      padding: 60px 20px;
-      transform: translateX(-260px);
-      transition: transform var(--transition-speed) ease;
-      z-index: 1002;
-      box-shadow: 5px 0 10px rgba(0,0,0,0.4);
-    }
-    body.light-theme #sidebar {
-      background: rgba(255,255,255,0.85);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    #sidebar.open { transform: translateX(0); }
-    #sidebar h1 {
-      margin: 0 0 30px 0;
-      color: var(--accent-color);
-      text-align: center;
-    }
-    #sidebar ul { list-style: none; padding: 0; }
-    #sidebar li { margin: 15px 0; }
-    #sidebar a {
-      color: var(--text-color);
-      font-size: 1rem;
-      display: block;
-      padding: 8px 5px;
-      border-radius: 4px;
-      text-decoration: none;
-      transition: background var(--transition-speed), text-shadow var(--transition-speed);
-    }
-    #sidebar a:hover {
-      background: rgba(129,212,250,0.2);
-      text-shadow: 0 0 5px var(--accent-color);
-    }
-    #overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      z-index: 1001;
-    }
-    #overlay.show { display: block; }
+  <!--
+    =================================================================================
+    |                      DESTINY-STYLE BZTRACKER — SUPER-EXPANDED                  |
+    =================================================================================
+    This HTML references:
+      • A canvas-based star system behind everything
+      • 5 Planets (Umbra, Pyra, Astris, Borealis, Eclipse) w/ advanced animations
+      • Hidden feature sections for each planet
+      • Background music, advanced transitions, minimal top-level UI except the planets
+      • The “tons more visuals” approach
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinematic BZTracker — Extended Star System</title>
 
-    /***********************************************
-     *            MAIN CONTENT & SECTIONS
-     ***********************************************/
-    #mainContent {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 70px 20px 40px;
-      position: relative;
-      z-index: 10;
-    }
-    section {
-      background: var(--card-bg);
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      margin-bottom: 50px;
-      padding: 20px;
-      transition: background var(--transition-speed);
-    }
-    body.light-theme .item-card {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255,255,255,0.4);
-    }
-    section h2 {
-      text-align: center;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-    .graph-subtitle {
-      text-align: center;
-      color: #aaa;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-    }
+  <!-- Chart.js libraries for the Price Graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1"></script>
 
-    /***********************************************
-     *             LOADER (SPINNER)
-     ***********************************************/
-    #loader {
-      display: none;
-      margin: 10px 0;
-      text-align: center;
-    }
-    .spinner {
-      border: 6px solid #999;
-      border-top: 6px solid var(--accent-color);
-      border-radius: 50%;
-      width: 35px;
-      height: 35px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-
-    /***********************************************
-     *         SEARCH SECTION
-     ***********************************************/
-    #search-form {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    #search-form input {
-      padding: 15px;
-      background: #222;
-      border: 2px solid #333;
-      border-radius: 5px;
-      color: #fff;
-      font-size: 1rem;
-    }
-    body.light-theme #search-form input {
-      background: rgba(255,255,255,0.7);
-      border: 2px solid #ccc;
-      color: #333;
-    }
-    #search-form input::placeholder { color: #777; }
-    body.light-theme #search-form input::placeholder { color: #666; }
-    #search-form button { align-self: start; }
-    #suggestions { position: relative; }
-    #suggestions div {
-      background: #2f2f46;
-      padding: 10px;
-      border: 1px solid var(--accent-color);
-      cursor: pointer;
-      transition: background var(--transition-speed);
-      margin-bottom: 2px;
-    }
-    #suggestions div:hover { background: #3c3c60; }
-    #result p { margin: 5px 0; }
-
-    /***********************************************
-     *         GRAPH SECTION – Two-Column Layout
-     ***********************************************/
-    .graph-layout {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    #chart-area {
-      flex: 3;
-      min-width: 500px;
-    }
-    #graph-controls {
-      flex: 1;
-      min-width: 260px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      justify-content: flex-start;
-    }
-    #priceGraph {
-      width: 100%;
-      height: 600px;
-      background: #1a1a1a;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      margin-bottom: 10px;
-    }
-    .time-range-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      justify-content: center;
-    }
-    .time-range-btn {
-      background: #333;
-      color: #fff;
-      border-radius: 5px;
-      border: none;
-      cursor: pointer;
-      padding: 5px 10px;
-      transition: background var(--transition-speed), box-shadow var(--transition-speed);
-    }
-    body.light-theme .time-range-btn {
-      background: var(--accent-color);
-      color: #fff;
-    }
-    body.light-theme .time-range-btn:hover {
-      background: #4fc3f7;
-    }
-    #trendline-controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-    }
-    .toggle-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .toggle-group span { font-size: 0.9rem; }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 50px;
-      height: 25px;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: 0.4s;
-      border-radius: 25px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 19px;
-      width: 19px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-    .toggle-switch input:checked + .slider {
-      background-color: var(--accent-color);
-    }
-    .toggle-switch input:checked + .slider:before {
-      transform: translateX(25px);
-    }
-    #extra-controls {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-    .target-sell {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-    }
-    #target-sell-price {
-      width: 100px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      text-align: center;
-    }
-    #forecast-accuracy,
-    #recommended-prices {
-      text-align: center;
-      margin: 8px 0;
-      font-weight: bold;
-    }
-
-    /***********************************************
-     *         TOP MARGINS & OTHER SECTIONS
-     ***********************************************/
-    .flex-row {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      justify-content: space-between;
-    }
-    .large { flex: 2; }
-    .small { flex: 1; }
-    #top-margins-section select,
-    #top-margins-section button { margin: 5px 5px 5px 0; }
-    #top-margins { margin-top: 15px; }
-    .item-card {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-    body.light-theme .item-card {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255,255,255,0.4);
-    }
-    .item-card:hover {
-      transform: scale(1.03);
-      box-shadow: 0 0 10px var(--accent-color);
-    }
-    .item-card p { margin: 4px 0; }
-    .item-card span { font-weight: bold; color: var(--accent-color); }
-
-    /***********************************************
-     *         PROFITABILITY SECTION
-     ***********************************************/
-    #profitability-section input {
-      width: 80px;
-      padding: 5px;
-      margin: 0 10px 0 0;
-      border: 2px solid #444;
-      border-radius: 5px;
-      background: #2f2f46;
-      color: #fff;
-    }
-    body.light-theme #profitability-section input {
-      background: rgba(255,255,255,0.7);
-      border: 2px solid #ccc;
-      color: #333;
-    }
-
-    /***********************************************
-     *         TOP VARIATIONS SECTION
-     ***********************************************/
-    #top-variations-section select,
-    #top-variations-section button { margin: 5px 5px 5px 0; }
-    #top-variations { margin-top: 15px; }
-
-    /***********************************************
-     *         RESPONSIVE ADJUSTMENTS
-     ***********************************************/
-    @media (max-width: 768px) {
-      .flex-row { flex-direction: column; }
-      .large, .small { flex: 1 1 100%; }
-      #search-form button { align-self: stretch; }
-      #priceGraph { height: 400px; }
-    }
-
-    /***********************************************
-     *        SETTINGS SECTION (THEME TOGGLE)
-     ***********************************************/
-    #settings-section {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-    }
-    #theme-toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0;
-    }
-    #theme-select {
-      padding: 5px 8px;
-      border: 2px solid #444;
-      background: #2f2f46;
-      border-radius: 5px;
-      color: #fff;
-      cursor: pointer;
-    }
-    body.light-theme #theme-select {
-      background: #fff;
-      border: 2px solid #ccc;
-      color: #333;
-    }
-    #theme-select option {
-      color: #fff;
-      background-color: #2f2f46;
-    }
-    body.light-theme #theme-select option {
-      color: #333;
-      background-color: #fff;
-    }
-  </style>
+  <!-- Link to our robust styles -->
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="dark-theme">
-  <!-- Particle Container -->
-  <div id="particle-container"></div>
-  <!-- Icicles (visible only in Light theme) -->
-  <div id="icicles">
-    <div class="icicle"></div>
-    <div class="icicle"></div>
-    <div class="icicle"></div>
-    <div class="icicle"></div>
-    <div class="icicle"></div>
-  </div>
+  <!--
+    ===========================================================================
+    |                       COSMIC CANVAS BACKDROP                            |
+    ===========================================================================
+    A full-screen canvas for multi-layer star + meteor + comet rendering. 
+    We define #cosmicCanvas in styles.css, placed behind everything at z-index:-1.
+  -->
+  <canvas id="cosmicCanvas"></canvas>
 
-  <!-- SIDEBAR TOGGLE & SOUND TOGGLES -->
-  <button id="menuToggle">☰</button>
-  <button id="soundToggle">🔇</button>
+  <!--
+    ===========================================================================
+    |                         PLANET SELECT SCREEN                            |
+    ===========================================================================
+    The user sees 5 clickable planets, each with intense color & animation.
+    On click, it transitions to a hidden section with real BZTracker features.
+  -->
+  <section id="planetSelect" class="planet-select">
+    <!-- Center Planet => Umbra (Search + Graph) -->
+    <div class="planet planet-umbra center-planet" data-target="planet-umbra-feature">
+      <div class="planet-image"></div>
+      <div class="planet-name">Umbra</div>
+    </div>
 
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <h1>BZTracker</h1>
-    <ul>
-      <li><a href="#search-section">Search</a></li>
-      <li><a href="#graph-section">Price Graph</a></li>
-      <li><a href="#top-margins-section">Top Margins</a></li>
-      <li><a href="#profitability-section">Profitability</a></li>
-      <li><a href="#top-variations-section">Top Variations</a></li>
-      <li><a href="#settings-section">Settings</a></li>
-    </ul>
-  </div>
-  <div id="overlay"></div>
+    <!-- Pyra => Top Margins (Deep maroon vibe) -->
+    <div class="planet planet-pyra top-left" data-target="planet-pyra-feature">
+      <div class="planet-image"></div>
+      <div class="planet-name">Pyra</div>
+    </div>
 
-  <!-- MAIN CONTENT WRAPPER -->
-  <div id="mainContent">
-    <!-- ============ SEARCH SECTION ============ -->
-    <section id="search-section">
+    <!-- Astris => Profitability (Subtle purple-teal vibe) -->
+    <div class="planet planet-astris top-right" data-target="planet-astris-feature">
+      <div class="planet-image"></div>
+      <div class="planet-name">Astris</div>
+    </div>
+
+    <!-- Borealis => Top Variations (Dark navy vibe) -->
+    <div class="planet planet-borealis bottom-left" data-target="planet-borealis-feature">
+      <div class="planet-image"></div>
+      <div class="planet-name">Borealis</div>
+    </div>
+
+    <!-- Eclipse => Settings (Gray vibe) -->
+    <div class="planet planet-eclipse bottom-right" data-target="planet-eclipse-feature">
+      <div class="planet-image"></div>
+      <div class="planet-name">Eclipse</div>
+    </div>
+  </section>
+
+  <!--
+    ===========================================================================
+    |                    FEATURE SECTIONS (One per Planet)                    |
+    ===========================================================================
+    Each hidden by default, revealed on planet click. 
+    All remain behind a “Back to Star Map” button to return.
+  -->
+
+  <!-- 1) Umbra: Search + Graph -->
+  <section id="planet-umbra-feature" class="feature-section umbra-theme" hidden>
+    <h1>Umbra — Search & Graph</h1>
+    <div class="feature-content">
       <h2>Search</h2>
       <form id="search-form">
         <input type="text" id="item-search" placeholder="Search for an item..." autocomplete="off"/>
@@ -526,24 +93,18 @@
       </form>
       <div id="loader"><div class="spinner"></div></div>
       <div id="result"></div>
-    </section>
 
-    <!-- ============ GRAPH SECTION ============ -->
-    <section id="graph-section">
       <h2>Price Graph</h2>
       <p class="graph-subtitle">
-        Interactive graph with advanced trendlines, moving averages, forecast predictions, and recommended buy/sell levels.
+        Interact with advanced forecasting, recommended buy/sell lines, and various trend toggles.
       </p>
       <div class="graph-layout">
-        <!-- Chart Area (Left Column) -->
         <div id="chart-area">
           <canvas id="priceGraph"></canvas>
           <div id="forecast-accuracy"></div>
           <div id="recommended-prices"></div>
         </div>
-        <!-- Control Panel (Right Column) -->
         <div id="graph-controls">
-          <!-- Time Range Buttons -->
           <div class="time-range-buttons">
             <button class="time-range-btn" data-range="1h">1 Hour</button>
             <button class="time-range-btn" data-range="24h">1 Day</button>
@@ -551,7 +112,6 @@
             <button class="time-range-btn" data-range="1y">1 Year</button>
             <button class="time-range-btn" data-range="all">All Time</button>
           </div>
-          <!-- Trendline & Forecast Toggles -->
           <div id="trendline-controls">
             <div class="toggle-group">
               <span>Linear</span>
@@ -589,43 +149,46 @@
               </label>
             </div>
           </div>
-          <!-- Extra Controls -->
           <div id="extra-controls">
             <button id="downloadGraph" class="time-range-btn">Download Graph</button>
             <div class="target-sell">
               <label for="target-sell-price">Target Sell Price:</label>
-              <input type="number" id="target-sell-price" placeholder="Enter target sell" step="0.01"/>
+              <input type="number" id="target-sell-price" placeholder="Enter target" step="0.01"/>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+    <button class="back-button">Return to Star Map</button>
+  </section>
 
-    <!-- ============ TOP MARGINS SECTION ============ -->
-    <section id="top-margins-section" class="small">
-      <h2>Top 10 Items with Highest Margins</h2>
-      <div>
-        <label for="sort-by">Sort by:</label>
-        <select id="sort-by">
-          <option value="margin" selected>Margin</option>
-          <option value="buy_price">Buy Price</option>
-          <option value="sell_price">Sell Price</option>
-          <option value="demand">Demand</option>
-          <option value="supply">Supply</option>
-        </select>
-        <label for="order">Order:</label>
-        <select id="order">
-          <option value="desc" selected>Descending</option>
-          <option value="asc">Ascending</option>
-        </select>
-        <button id="refresh-top-margins">Refresh</button>
-      </div>
+  <!-- 2) Pyra: Top Margins -->
+  <section id="planet-pyra-feature" class="feature-section pyra-theme" hidden>
+    <h1>Pyra — Top Margins</h1>
+    <div class="feature-content">
+      <label for="sort-by">Sort by:</label>
+      <select id="sort-by">
+        <option value="margin" selected>Margin</option>
+        <option value="buy_price">Buy Price</option>
+        <option value="sell_price">Sell Price</option>
+        <option value="demand">Demand</option>
+        <option value="supply">Supply</option>
+      </select>
+      <label for="order">Order:</label>
+      <select id="order">
+        <option value="desc" selected>Descending</option>
+        <option value="asc">Ascending</option>
+      </select>
+      <button id="refresh-top-margins">Refresh</button>
       <div id="top-margins"></div>
-    </section>
+    </div>
+    <button class="back-button">Return to Star Map</button>
+  </section>
 
-    <!-- ============ PROFITABILITY SECTION ============ -->
-    <section id="profitability-section">
-      <h2>Profitability (Coins Per Hour)</h2>
+  <!-- 3) Astris: Profitability -->
+  <section id="planet-astris-feature" class="feature-section astris-theme" hidden>
+    <h1>Astris — Profitability</h1>
+    <div class="feature-content">
       <div style="margin-bottom:10px;">
         <label for="coins">Coins:</label>
         <input type="number" id="coins" value="0"/>
@@ -634,717 +197,53 @@
         <button id="calculate-profit">Calculate Profit</button>
       </div>
       <div id="profitability-result"></div>
-    </section>
+    </div>
+    <button class="back-button">Return to Star Map</button>
+  </section>
 
-    <!-- ============ TOP VARIATIONS SECTION ============ -->
-    <section id="top-variations-section">
-      <h2>Top 10 Items with Highest Price Variations</h2>
-      <div>
-        <label for="variation-time-range">Time Range:</label>
-        <select id="variation-time-range">
-          <option value="3600">1 Hour</option>
-          <option value="86400">1 Day</option>
-          <option value="604800">1 Week</option>
-        </select>
-        <button id="refresh-top-variations">Refresh</button>
-      </div>
+  <!-- 4) Borealis: Top Variations -->
+  <section id="planet-borealis-feature" class="feature-section borealis-theme" hidden>
+    <h1>Borealis — Top Variations</h1>
+    <div class="feature-content">
+      <label for="variation-time-range">Time Range:</label>
+      <select id="variation-time-range">
+        <option value="3600">1 Hour</option>
+        <option value="86400">1 Day</option>
+        <option value="604800">1 Week</option>
+      </select>
+      <button id="refresh-top-variations">Refresh</button>
       <div id="top-variations"></div>
-    </section>
+    </div>
+    <button class="back-button">Return to Star Map</button>
+  </section>
 
-    <!-- ============ SETTINGS SECTION ============ -->
-    <section id="settings-section">
-      <h2>Settings</h2>
-      <div id="theme-toggle-container">
-        <label for="theme-select"><strong>Theme:</strong></label>
-        <select id="theme-select">
-          <option value="dark">Dark (Obsidian)</option>
-          <option value="light">Light (Ice)</option>
-        </select>
-      </div>
-      <p>
-        Use this dropdown to switch between the dark “Crying Obsidian” theme and the light “Ice” theme.
-        In light mode, enjoy a frosty interface with falling snow and icicles.
-        Forecasting functions automatically extend 100 periods into the future.
-        Forecast accuracy is computed as ((forecast – actual) / forecast) * 100 for each forecasted point,
-        and both the simple forecast (using a 5‑point holdout) and the Holt‑Winters forecast are always displayed.
-        Additionally, a recommended buy price (lowest recorded buy) and a recommended sell price (highest recorded sell)
-        are computed from the current data.
-      </p>
-    </section>
-  </div>
+  <!-- 5) Eclipse: Settings -->
+  <section id="planet-eclipse-feature" class="feature-section eclipse-theme" hidden>
+    <h1>Eclipse — Settings</h1>
+    <div class="feature-content">
+      <label for="theme-select"><strong>Choose Theme:</strong></label>
+      <select id="theme-select">
+        <option value="dark">Dark (Space)</option>
+        <option value="light">Light (Ice)</option>
+      </select>
+      <p>Additional advanced user preferences can appear here...</p>
+    </div>
+    <button class="back-button">Return to Star Map</button>
+  </section>
 
-  <!-- BACKGROUND MUSIC -->
-  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9f8b1101b0.mp3?filename=mystic-realm-of-minecraft-235545.mp3" loop></audio>
+  <!--
+    ===========================================================================
+    |                           BACKGROUND MUSIC                              |
+    ===========================================================================
+  -->
+  <audio 
+    id="bgMusic"
+    src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9f8b1101b0.mp3?filename=mystic-realm-of-minecraft-235545.mp3"
+    loop
+  ></audio>
+  <button id="soundToggle" class="sound-btn" style="display:none;">🔇</button>
 
-  <!-- ====================== COMBINED JAVASCRIPT ====================== -->
-  <script>
-    // 1. SIDEBAR TOGGLE & OVERLAY
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    menuToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('show');
-    });
-    overlay.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('show');
-    });
-    document.querySelectorAll('#sidebar a').forEach(link => {
-      link.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('show');
-      });
-    });
-
-    // 2. BACKGROUND MUSIC TOGGLE
-    const bgMusic = document.getElementById('bgMusic');
-    const soundToggle = document.getElementById('soundToggle');
-    soundToggle.addEventListener('click', () => {
-      if (bgMusic.paused) {
-        bgMusic.volume = 0.5;
-        bgMusic.play();
-        soundToggle.textContent = '🔊';
-      } else {
-        bgMusic.pause();
-        soundToggle.textContent = '🔇';
-      }
-    });
-
-    // 3. THEME TOGGLE & ICICLES MANAGEMENT
-    const bodyEl = document.body;
-    const themeSelect = document.getElementById('theme-select');
-    themeSelect.value = 'dark';
-    themeSelect.addEventListener('change', () => {
-      if (themeSelect.value === 'light') {
-        bodyEl.classList.remove('dark-theme');
-        bodyEl.classList.add('light-theme');
-      } else {
-        bodyEl.classList.remove('light-theme');
-        bodyEl.classList.add('dark-theme');
-      }
-    });
-
-    // 4. PARTICLE ANIMATION (Snow for Ice, Ambient for Dark)
-    (function() {
-      const container = document.getElementById('particle-container');
-      if (!container) return;
-      const canvas = document.createElement('canvas');
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.display = 'block';
-      container.appendChild(canvas);
-      const ctx = canvas.getContext('2d');
-      let width = window.innerWidth, height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-      window.addEventListener('resize', () => {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-      });
-      class Particle {
-        constructor() { this.reset(); }
-        reset() {
-          this.x = Math.random() * width;
-          this.y = Math.random() * height;
-          this.vx = (Math.random() - 0.5) * 0.4;
-          this.vy = (Math.random() - 0.5) * 0.4;
-          this.size = 2 + Math.random() * 3;
-        }
-        update() {
-          this.x += this.vx;
-          this.y += this.vy;
-          if (this.x < 0) this.x = width;
-          if (this.x > width) this.x = 0;
-          if (this.y < 0) this.y = height;
-          if (this.y > height) this.y = 0;
-        }
-        draw() {
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
-          const themeColor = getComputedStyle(document.body).getPropertyValue('--particle-color').trim();
-          ctx.fillStyle = themeColor || 'rgba(138,43,226,0.5)';
-          ctx.fill();
-        }
-      }
-      const particles = [];
-      const NUM_PARTICLES = 40;
-      for (let i = 0; i < NUM_PARTICLES; i++) {
-        particles.push(new Particle());
-      }
-      let mouseX = width / 2, mouseY = height / 2;
-      window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-      function animate() {
-        ctx.clearRect(0, 0, width, height);
-        particles.forEach(p => {
-          if (document.body.classList.contains('light-theme')) {
-            // Falling snow with gentle breeze
-            p.y += 1;
-            p.x += Math.sin(Date.now() / 1000 + p.x) * 0.5;
-            if (p.y > height) {
-              p.y = 0;
-              p.x = Math.random() * width;
-            }
-            p.draw();
-          } else {
-            // Ambient movement with mouse repulsion for dark theme
-            p.update();
-            const dx = p.x - mouseX, dy = p.y - mouseY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const repelRadius = 80;
-            if (dist < repelRadius) {
-              const angle = Math.atan2(dy, dx);
-              const force = (repelRadius - dist) / repelRadius;
-              p.x += Math.cos(angle) * force * 2;
-              p.y += Math.sin(angle) * force * 2;
-            }
-            p.draw();
-          }
-        });
-        requestAnimationFrame(animate);
-      }
-      animate();
-    })();
-
-    // 5. GRAPH FUNCTIONALITY WITH TRENDLINES, FORECASTS, RECOMMENDED PRICES & ACCURACY
-    document.addEventListener('DOMContentLoaded', () => {
-      const searchInput = document.getElementById('item-search');
-      const suggestionsDiv = document.getElementById('suggestions');
-      const resultDiv = document.getElementById('result');
-      const loaderDiv = document.getElementById('loader');
-      const priceGraphCtx = document.getElementById('priceGraph').getContext('2d');
-      const topMarginsDiv = document.getElementById('top-margins');
-      const profitabilityRes = document.getElementById('profitability-result');
-      const calcProfitButton = document.getElementById('calculate-profit');
-      const topVariationsDiv = document.getElementById('top-variations');
-      const refreshTopVarBtn = document.getElementById('refresh-top-variations');
-      const variationTimeSel = document.getElementById('variation-time-range');
-      const toggleLinear = document.getElementById('toggle-linear');
-      const toggleExponential = document.getElementById('toggle-exponential');
-      const toggleMA = document.getElementById('toggle-moving-average');
-      const toggleForecast = document.getElementById('toggle-forecast');
-      const toggleHoltWinters = document.getElementById('toggle-holt-winters');
-      const downloadBtn = document.getElementById('downloadGraph');
-      const forecastAccuracyDiv = document.getElementById('forecast-accuracy');
-      const recommendedDiv = document.getElementById('recommended-prices');
-      const targetSellInput = document.getElementById('target-sell-price');
-      let currentItem = '';
-      let chart;
-      let graphHistoryData = [];
-
-      // Helper Functions
-      function computeLinearTrendline(dataPoints) {
-        const n = dataPoints.length;
-        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-        for (let i = 0; i < n; i++) {
-          const x = dataPoints[i].x.getTime(), y = dataPoints[i].y;
-          sumX += x;
-          sumY += y;
-          sumXY += x * y;
-          sumXX += x * x;
-        }
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-        return dataPoints.map(pt => ({ x: pt.x, y: intercept + slope * pt.x.getTime() }));
-      }
-
-      function computeExponentialTrendline(dataPoints) {
-        const n = dataPoints.length;
-        let sumX = 0, sumLogY = 0, sumXLogY = 0, sumXX = 0;
-        for (let i = 0; i < n; i++) {
-          const x = dataPoints[i].x.getTime(), y = dataPoints[i].y;
-          if (y <= 0) continue;
-          const logY = Math.log(y);
-          sumX += x;
-          sumLogY += logY;
-          sumXLogY += x * logY;
-          sumXX += x * x;
-        }
-        const slope = (n * sumXLogY - sumX * sumLogY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumLogY - slope * sumX) / n;
-        return dataPoints.map(pt => ({ x: pt.x, y: Math.exp(intercept + slope * pt.x.getTime()) }));
-      }
-
-      function computeMovingAverage(dataPoints, windowSize = 5) {
-        const result = [];
-        for (let i = 0; i < dataPoints.length; i++) {
-          let sum = 0, count = 0;
-          for (let j = Math.max(0, i - windowSize + 1); j <= i; j++) {
-            sum += dataPoints[j].y;
-            count++;
-          }
-          result.push({ x: dataPoints[i].x, y: sum / count });
-        }
-        return result;
-      }
-
-      function computeForecast(dataPoints, numPoints = 10) {
-        if (dataPoints.length < 2) return [];
-        const n = dataPoints.length;
-        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-        for (let i = 0; i < n; i++) {
-          const x = dataPoints[i].x.getTime(), y = dataPoints[i].y;
-          sumX += x;
-          sumY += y;
-          sumXY += x * y;
-          sumXX += x * x;
-        }
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-        const interval = (dataPoints[n - 1].x.getTime() - dataPoints[0].x.getTime()) / (n - 1);
-        const forecast = [];
-        let lastTime = dataPoints[n - 1].x.getTime();
-        for (let i = 1; i <= numPoints; i++) {
-          const x = lastTime + i * interval;
-          forecast.push({ x: new Date(x), y: intercept + slope * x });
-        }
-        return forecast;
-      }
-
-      function holtWintersForecast(dataPoints, periods = 100, alpha = 0.6, beta = 0.1, gamma = 0.1, seasonLength = 0) {
-        if (dataPoints.length < 3) return [];
-        const times = dataPoints.map(dp => dp.x.getTime());
-        const values = dataPoints.map(dp => dp.y);
-        const n = values.length;
-        let level = values[0], trend = values[1] - values[0];
-        let season = [];
-        if (seasonLength > 0) {
-          for (let i = 0; i < seasonLength; i++) {
-            season[i] = values[i] - level;
-          }
-        }
-        const result = [];
-        for (let i = 0; i < n; i++) {
-          let s = (seasonLength > 0) ? season[i % seasonLength] : 0;
-          result.push({ x: new Date(times[i]), y: level + trend + s });
-          const actual = values[i];
-          const prevLevel = level;
-          level = alpha * (actual - s) + (1 - alpha) * (level + trend);
-          trend = beta * (level - prevLevel) + (1 - beta) * trend;
-          if (seasonLength > 0) {
-            season[i % seasonLength] = gamma * (actual - level) + (1 - gamma) * s;
-          }
-        }
-        const interval = (times[n - 1] - times[0]) / (n - 1);
-        let lastTime = times[n - 1];
-        for (let i = 1; i <= periods; i++) {
-          lastTime += interval;
-          let s = (seasonLength > 0) ? season[(n - 1 + i) % seasonLength] : 0;
-          const fc = level + i * trend + s;
-          result.push({ x: new Date(lastTime), y: fc });
-        }
-        return result;
-      }
-
-      // Compute forecast accuracy as ((forecast - actual) / forecast) * 100
-      function computeForecastAccuracy(dataPoints, forecastFn, forecastHorizon) {
-        if (dataPoints.length <= forecastHorizon) return 0;
-        const trainingData = dataPoints.slice(0, dataPoints.length - forecastHorizon);
-        const actualData = dataPoints.slice(dataPoints.length - forecastHorizon);
-        const predictedFull = forecastFn(trainingData, forecastHorizon);
-        const forecasted = predictedFull.slice(-forecastHorizon);
-        let totalError = 0, count = 0;
-        for (let i = 0; i < forecastHorizon; i++) {
-          const forecastValue = forecasted[i].y;
-          const actualValue = actualData[i].y;
-          if (forecastValue !== 0) {
-            totalError += ((forecastValue - actualValue) / forecastValue) * 100;
-            count++;
-          }
-        }
-        return count ? totalError / count : 0;
-      }
-
-      // Main chart update function (includes horizontal panning via zoom plugin)
-      function updateChart() {
-        if (!graphHistoryData.length) return;
-        const buyDataPoints = graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.buy_price }));
-        const sellDataPoints = graphHistoryData.map(h => ({ x: new Date(h.timestamp * 1000), y: h.sell_price }));
-        const minTime = new Date(Math.min(...buyDataPoints.map(pt => pt.x.getTime())));
-        const maxTime = new Date(Math.max(...buyDataPoints.map(pt => pt.x.getTime())));
-        const datasets = [
-          {
-            label: 'Buy Price',
-            data: buyDataPoints,
-            borderColor: '#00ccff',
-            fill: false,
-            tension: 0.3
-          },
-          {
-            label: 'Sell Price',
-            data: sellDataPoints,
-            borderColor: '#ff5733',
-            fill: false,
-            tension: 0.3
-          }
-        ];
-
-        if (toggleLinear.checked) {
-          datasets.push({
-            label: 'Buy Linear Trendline',
-            data: computeLinearTrendline(buyDataPoints),
-            borderColor: '#00ccff',
-            borderDash: [5, 5],
-            fill: false,
-            tension: 0
-          });
-          datasets.push({
-            label: 'Sell Linear Trendline',
-            data: computeLinearTrendline(sellDataPoints),
-            borderColor: '#ff5733',
-            borderDash: [5, 5],
-            fill: false,
-            tension: 0
-          });
-        }
-        if (toggleExponential.checked) {
-          datasets.push({
-            label: 'Buy Exponential Trendline',
-            data: computeExponentialTrendline(buyDataPoints),
-            borderColor: '#00ccff',
-            borderDash: [10, 5],
-            fill: false,
-            tension: 0
-          });
-          datasets.push({
-            label: 'Sell Exponential Trendline',
-            data: computeExponentialTrendline(sellDataPoints),
-            borderColor: '#ff5733',
-            borderDash: [10, 5],
-            fill: false,
-            tension: 0
-          });
-        }
-        if (toggleMA.checked) {
-          datasets.push({
-            label: 'Buy Moving Average',
-            data: computeMovingAverage(buyDataPoints),
-            borderColor: '#00ccff',
-            borderDash: [2, 2],
-            fill: false,
-            tension: 0
-          });
-          datasets.push({
-            label: 'Sell Moving Average',
-            data: computeMovingAverage(sellDataPoints),
-            borderColor: '#ff5733',
-            borderDash: [2, 2],
-            fill: false,
-            tension: 0
-          });
-        }
-        if (toggleForecast.checked) {
-          datasets.push({
-            label: 'Buy Forecast',
-            data: computeForecast(buyDataPoints),
-            borderColor: '#00ccff',
-            borderDash: [15, 5],
-            fill: false,
-            tension: 0
-          });
-          datasets.push({
-            label: 'Sell Forecast',
-            data: computeForecast(sellDataPoints),
-            borderColor: '#ff5733',
-            borderDash: [15, 5],
-            fill: false,
-            tension: 0
-          });
-        }
-        if (toggleHoltWinters.checked) {
-          const periods = 100;
-          const buyHW = holtWintersForecast(buyDataPoints, periods);
-          const sellHW = holtWintersForecast(sellDataPoints, periods);
-          datasets.push({
-            label: 'Buy (Holt‑Winters)',
-            data: buyHW,
-            borderColor: '#00ccff',
-            borderDash: [5, 10],
-            fill: false,
-            tension: 0
-          });
-          datasets.push({
-            label: 'Sell (Holt‑Winters)',
-            data: sellHW,
-            borderColor: '#ff5733',
-            borderDash: [5, 10],
-            fill: false,
-            tension: 0
-          });
-        }
-
-        // Compute Recommended Prices
-        const recommendedBuyPrice = Math.min(...buyDataPoints.map(pt => pt.y));
-        const recommendedSellPrice = Math.max(...sellDataPoints.map(pt => pt.y));
-        datasets.push({
-          label: 'Recommended Buy Price',
-          data: [{ x: minTime, y: recommendedBuyPrice }, { x: maxTime, y: recommendedBuyPrice }],
-          borderColor: '#00ff00',
-          borderDash: [8, 4],
-          fill: false,
-          pointRadius: 0
-        });
-        datasets.push({
-          label: 'Recommended Sell Price',
-          data: [{ x: minTime, y: recommendedSellPrice }, { x: maxTime, y: recommendedSellPrice }],
-          borderColor: '#ff00ff',
-          borderDash: [8, 4],
-          fill: false,
-          pointRadius: 0
-        });
-        // Check for custom target sell price input
-        const targetSellPrice = parseFloat(targetSellInput.value);
-        if (!isNaN(targetSellPrice)) {
-          datasets.push({
-            label: 'Target Sell Price',
-            data: [{ x: minTime, y: targetSellPrice }, { x: maxTime, y: targetSellPrice }],
-            borderColor: '#ffff00',
-            borderDash: [2, 2],
-            fill: false,
-            pointRadius: 0
-          });
-        }
-        // Update Recommended Prices Display
-        recommendedDiv.textContent = `Recommended Buy Price: ${recommendedBuyPrice.toFixed(2)} | Recommended Sell Price: ${recommendedSellPrice.toFixed(2)}`;
-        // Create/Update the Chart with horizontal panning enabled
-        if (chart) chart.destroy();
-        chart = new Chart(priceGraphCtx, {
-          type: 'line',
-          data: { datasets },
-          options: {
-            animation: { duration: 500, easing: 'easeInOutQuad' },
-            scales: {
-              x: {
-                type: 'time',
-                time: { unit: 'minute', tooltipFormat: 'Pp' },
-                min: minTime,
-                max: maxTime,
-                ticks: { color: document.body.classList.contains('light-theme') ? '#333' : '#fff' },
-                grid: { color: document.body.classList.contains('light-theme') ? '#ddd' : '#555' }
-              },
-              y: {
-                ticks: { color: document.body.classList.contains('light-theme') ? '#333' : '#fff' },
-                grid: { color: document.body.classList.contains('light-theme') ? '#ddd' : '#555' }
-              }
-            },
-            plugins: {
-              zoom: {
-                pan: {
-                  enabled: true,
-                  mode: 'x'
-                },
-                zoom: {
-                  wheel: { enabled: false },
-                  pinch: { enabled: false },
-                  mode: 'x'
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
-                }
-              },
-              legend: {
-                labels: { color: document.body.classList.contains('light-theme') ? '#333' : '#fff' }
-              }
-            }
-          }
-        });
-        // Always compute and display forecast accuracies
-        const simpleHorizon = 5;
-        const simpleAccBuy = computeForecastAccuracy(buyDataPoints, computeForecast, simpleHorizon);
-        const simpleAccSell = computeForecastAccuracy(sellDataPoints, computeForecast, simpleHorizon);
-        const simpleAvg = (simpleAccBuy + simpleAccSell) / 2;
-        const holtAccBuy = computeForecastAccuracy(buyDataPoints, holtWintersForecast, 100);
-        const holtAccSell = computeForecastAccuracy(sellDataPoints, holtWintersForecast, 100);
-        const holtAvg = (holtAccBuy + holtAccSell) / 2;
-        forecastAccuracyDiv.textContent =
-          `Simple Forecast Accuracy: Buy: ${simpleAccBuy.toFixed(2)}%, Sell: ${simpleAccSell.toFixed(2)}%, Avg: ${simpleAvg.toFixed(2)}% | ` +
-          `Holt‑Winters Forecast Accuracy: Buy: ${holtAccBuy.toFixed(2)}%, Sell: ${holtAccSell.toFixed(2)}%, Avg: ${holtAvg.toFixed(2)}%`;
-      }
-
-      function showLoader(show) {
-        loaderDiv.style.display = show ? 'block' : 'none';
-      }
-
-      // AUTOCOMPLETE LOGIC
-      async function fetchSuggestions(query) {
-        try {
-          const response = await fetch(`/autocomplete?query=${encodeURIComponent(query)}`);
-          if (!response.ok) throw new Error('Failed to fetch suggestions.');
-          const items = await response.json();
-          suggestionsDiv.innerHTML = '';
-          items.forEach(item => {
-            const suggestion = document.createElement('div');
-            suggestion.textContent = item;
-            suggestion.addEventListener('click', () => {
-              searchInput.value = item;
-              suggestionsDiv.innerHTML = '';
-            });
-            suggestionsDiv.appendChild(suggestion);
-          });
-        } catch (error) {
-          console.error('Autocomplete error:', error);
-        }
-      }
-      searchInput.addEventListener('input', () => {
-        const query = searchInput.value.trim();
-        if (query.length < 2) { suggestionsDiv.innerHTML = ''; return; }
-        fetchSuggestions(query);
-      });
-
-      // FETCH GRAPH DATA & UPDATE CHART
-      async function fetchGraphData(itemName, timeRange = 'all') {
-        try {
-          showLoader(true);
-          const url = `/graph-data?item=${encodeURIComponent(itemName)}&range=${timeRange}`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Failed to fetch graph data.');
-          graphHistoryData = await response.json();
-          updateChart();
-        } catch (error) {
-          console.error('Graph error:', error);
-          resultDiv.innerHTML = '<p>Error loading graph data. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      }
-
-      // FETCH TOP MARGINS
-      async function fetchTopMargins() {
-        const sortBy = document.getElementById('sort-by').value;
-        const order = document.getElementById('order').value;
-        try {
-          showLoader(true);
-          const response = await fetch(`/top-margins?sort_by=${sortBy}&order=${order}`);
-          if (!response.ok) throw new Error('Failed to fetch top margins.');
-          const items = await response.json();
-          topMarginsDiv.innerHTML = items.map(item => `
-            <div class="item-card">
-              <p><span>Item:</span> ${item.item_id}</p>
-              <p><span>Margin:</span> ${item.margin}</p>
-              <p><span>Buy Price:</span> ${item.buy_price}</p>
-              <p><span>Sell Price:</span> ${item.sell_price}</p>
-              <p><span>Demand:</span> ${item.demand ?? 'N/A'}</p>
-              <p><span>Supply:</span> ${item.supply ?? 'N/A'}</p>
-            </div>
-          `).join('');
-        } catch (error) {
-          console.error('Top margins error:', error);
-          topMarginsDiv.innerHTML = '<p>Error loading top items. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      }
-      document.getElementById('refresh-top-margins').addEventListener('click', fetchTopMargins);
-      setInterval(fetchTopMargins, 60000);
-      fetchTopMargins();
-
-      // PROFITABILITY CALCULATION
-      calcProfitButton.addEventListener('click', async () => {
-        const coins = parseFloat(document.getElementById('coins').value);
-        const difficulty = parseFloat(document.getElementById('difficulty').value);
-        try {
-          showLoader(true);
-          const response = await fetch(`/profitability?coins=${coins}&difficulty=${difficulty}`);
-          if (!response.ok) throw new Error('Failed to fetch profitability.');
-          const results = await response.json();
-          profitabilityRes.innerHTML = results.map(r => `
-            <div class="item-card">
-              <p><strong>Item:</strong> ${r.item_id}</p>
-              <p><strong>Profit per Minute:</strong> ${r.profit_per_minute.toFixed(2)}</p>
-              <p><strong>Profit per Hour:</strong> ${r.profit_per_hour.toFixed(2)}</p>
-            </div>
-          `).join('');
-        } catch (error) {
-          console.error('Profitability error:', error);
-          profitabilityRes.innerHTML = '<p>Error calculating profitability. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      });
-
-      // GRAPH TIME RANGE BUTTONS
-      document.querySelectorAll('.time-range-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const timeRange = this.getAttribute('data-range');
-          if (currentItem) fetchGraphData(currentItem, timeRange);
-        });
-      });
-
-      // EXTRA GRAPH CONTROL: DOWNLOAD GRAPH
-      downloadBtn.addEventListener('click', () => {
-        if (chart) {
-          const url = chart.toBase64Image();
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = currentItem + '_graph.png';
-          a.click();
-        }
-      });
-
-      // FETCH TOP VARIATIONS
-      async function fetchTopVariations() {
-        const timeRange = variationTimeSel.value;
-        try {
-          showLoader(true);
-          const response = await fetch(`/top-variations?time_range=${timeRange}`);
-          if (!response.ok) throw new Error("Failed to fetch top variations.");
-          const items = await response.json();
-          topVariationsDiv.innerHTML = items.map(item => `
-            <div class="item-card">
-              <p><span>Item:</span> ${item.item_id}</p>
-              <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
-              <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
-              <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
-              <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
-            </div>
-          `).join('');
-        } catch (error) {
-          console.error('Top variations error:', error);
-          topVariationsDiv.innerHTML = '<p>Error loading top variations. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      }
-      refreshTopVarBtn.addEventListener('click', fetchTopVariations);
-      fetchTopVariations();
-
-      // Update chart if any toggle changes
-      [toggleLinear, toggleExponential, toggleMA, toggleForecast, toggleHoltWinters].forEach(el =>
-        el.addEventListener('change', updateChart)
-      );
-
-      // SEARCH -> FETCH ITEM DETAILS
-      document.getElementById('search-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const itemName = searchInput.value.trim();
-        if (!itemName) return;
-        currentItem = itemName;
-        try {
-          showLoader(true);
-          const response = await fetch(`/search?item=${encodeURIComponent(itemName)}`);
-          if (!response.ok) throw new Error('Failed to fetch item details.');
-          const data = await response.json();
-          resultDiv.innerHTML = `
-            <p><strong>Item:</strong> ${data.item_id}</p>
-            <p><strong>Buy Price:</strong> ${data.buy_price ?? 'N/A'}</p>
-            <p><strong>Sell Price:</strong> ${data.sell_price ?? 'N/A'}</p>
-            <p><strong>Margin:</strong> ${data.margin ?? 'N/A'}</p>
-            <p><strong>Demand:</strong> ${data.demand ?? 'N/A'}</p>
-            <p><strong>Supply:</strong> ${data.supply ?? 'N/A'}</p>
-          `;
-          fetchGraphData(itemName);
-        } catch (error) {
-          console.error('Item details error:', error);
-          resultDiv.innerHTML = '<p>Error loading item details. Please try again later.</p>';
-        } finally {
-          showLoader(false);
-        }
-      });
-    });
-  </script>
+  <!-- Finally, link to our script -->
+  <script src="/static/script.js" defer></script>
 </body>
 </html>
