@@ -95,8 +95,8 @@ def start_background_thread():
                         # ADD THESE LOGS!
                         logging.info(f"Quick status before extraction = {item_data.get('quick_status')}")
 
-                        buy_price = item_data.get('buy_price', 0)  # Default to 0 if 'buy_price' is missing
-                        sell_price = item_data.get('sell_price', 0)  # Default to 0 if 'sell_price' is missing
+                        buy_price = item_data.get('quick_status',{}).get('buyPrice', 0)  # Default to 0 if 'buyPrice' is missing
+                        sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing
                         logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}")
 
                         timestamp = int(time.time())
