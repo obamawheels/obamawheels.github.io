@@ -87,24 +87,26 @@ def start_background_thread():
     tracker = BazaarTracker() # you will need to initialize your tracker with proper api keys, etc.
 
     def background_data_updater():
-        while True:
-            try:
-                tracker.update_data()
-                for item_id, item_data in tracker.data.items():
-                    logging.info(f"Item data for item_id {item_id}: {item_data}")  # This line confirms data is being read.
+            while True:
+                try:
+                    tracker.update_data()
+                    for item_id, item_data in tracker.data.items():
+                        logging.info(f"Item data for item_id {item_id}: {item_data}")  # Add this line
+                        # ADD THESE LOGS!
+                        logging.info(f"Quick status before extraction = {item_data.get('quick_status')}")
 
-                    buy_price = item_data.get('buy_price', 0)  # Default to 0 if 'buy_price' is missing
-                    sell_price = item_data.get('sell_price', 0)  # Default to 0 if 'sell_price' is missing
-                    logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}") #This line shows what prices are before they are saved!
+                        buy_price = item_data.get('buy_price', 0)  # Default to 0 if 'buy_price' is missing
+                        sell_price = item_data.get('sell_price', 0)  # Default to 0 if 'sell_price' is missing
+                        logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}")
 
-                    timestamp = int(time.time())
-                    save_data(item_id, buy_price, sell_price)
-                    write_to_influxdb(item_id, buy_price, sell_price, timestamp)
-                    logging.info(f"Data successfully updated and saved to the database and InfluxDB: Item ID = {item_id}")
-            except Exception as e:
-                logging.error(f"Error updating data: {e}")
-                    
-            time.sleep(60)  # Wait 60 seconds before the next update
+                        timestamp = int(time.time())
+                        save_data(item_id, buy_price, sell_price)
+                        write_to_influxdb(item_id, buy_price, sell_price, timestamp)
+                        logging.info(f"Data successfully updated and saved to the database and InfluxDB: Item ID = {item_id}")
+
+                except Exception as e:
+                    logging.error(f"Error updating data: {e}")
+                time.sleep(60)  # Wait 60 seconds before the next update
 
     threading.Thread(target=background_data_updater, daemon=True).start()
 
