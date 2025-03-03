@@ -25,7 +25,6 @@ write_api = client.write_api()  # Create a single write_api instance
 
 def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
     """Writes item data to InfluxDB, with explicit float conversion and validation tag."""
-    logging.info(f"Attempting to write to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")
 
     try:
         point = Point("item_prices") \
@@ -37,7 +36,6 @@ def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
 
         write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
 
-        logging.info(f"Successfully wrote data to InfluxDB: item_id={item_id}, buy_price={buy_price}, sell_price={sell_price}, timestamp={timestamp}")  # Log successful writes
     except Exception as e:
         logging.error(f"Error writing data to InfluxDB: {e}")
 
@@ -59,16 +57,9 @@ def start_background_thread():
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
 
-                    # Debug and check where the prices are located
-                    logging.info(f"Item data for item_id {item_id}: {item_data}")
-                    logging.info(f"Quick status before extraction = {item_data.get('quick_status')}")
-
                     #Get prices properly
                     buy_price = item_data.get('quick_status',{}).get('buyPrice', 0)  # Default to 0 if 'buyPrice' is missing
                     sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing
-
-                    #Logging to help debug!
-                    logging.info(f"After extraction - Buy price: {buy_price}, Sell price: {sell_price}")
 
                     timestamp = int(time.time())
                     write_to_influxdb(item_id, buy_price, sell_price, timestamp)
