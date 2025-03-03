@@ -67,9 +67,10 @@ def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
 
         point = Point("item_prices") \
             .tag("item_id", item_id) \
-            .field("buy_price", buy_price) \
-            .field("sell_price", sell_price) \
-            .time(timestamp, write_precision='s')
+            .field("buy_price", float(buy_price)) \
+            .field("sell_price", float(sell_price)) \
+            .tag("valid_prices", True if buy_price > 0 and sell_price > 0 else False) \
+            .time(timestamp, write_precision='s') 
 
         write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
 
