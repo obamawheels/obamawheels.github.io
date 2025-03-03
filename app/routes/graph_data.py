@@ -35,21 +35,26 @@ def graph_data():
 
         # Execute the query
         tables = query_api.query(query)
-        print (f"These are my tables:{tables}") #print the tables.
 
         # Process the results
         history = []
         for table in tables:
-            print (f"This is what is in table{table}")
             for record in table.records:
+                bp_value = record.get_value_by_key("buy_price")
+                sp_value = record.get_value_by_key("sell_price")
+
+                # Check the values and types
+                print(f"Raw buy_price value: {bp_value}, Type: {type(bp_value)}")
+                print(f"Raw sell_price value: {sp_value}, Type: {type(sp_value)}")
+
+                # Append the data to the history list
                 history.append({
                     "timestamp": record.get_time().timestamp(),  # Convert to Unix timestamp
-                    "buy_price": record.get_value_by_key("buy_price"),
-                    "sell_price": record.get_value_by_key("sell_price")
+                    "buy_price": bp_value,
+                    "sell_price": sp_value
                 })
 
         client.close()
-        print (f"This is my history object{history}")
 
         return jsonify(history)
     except Exception as e:
