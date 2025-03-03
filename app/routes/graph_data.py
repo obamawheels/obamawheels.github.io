@@ -1,34 +1,65 @@
+import os
 from flask import Blueprint, request, jsonify
+from influxdb_client import InfluxDBClient
 import time
-from app.utils.tracker_helpers import fetch_item_history
 
 graph_data_bp = Blueprint('graph_data', __name__)
+
+# InfluxDB Configuration (Read from environment variables)
+INFLUXDB_URL = os.environ.get("INFLUXDB_URL")
+INFLUXDB_ORG = os.environ.get("INFLUXDB_ORG")
+INFLUXDB_BUCKET = os.environ.get("INFLUXDB_BUCKET")
+INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN")
 
 @graph_data_bp.route('/graph-data', methods=['GET'])
 def graph_data():
     """
-    Return historical price data for a specific item within a specified time range.
+    Return historical price data for a specific item within a specified time range from InfluxDB.
     """
     item_name = request.args.get('item', '').lower()
     time_range = request.args.get('range', 'all')
 
     try:
-        history = fetch_item_history(item_name)
-        if not history:
-            return jsonify({"error": "Item not found"}), 404
+        client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
+        query_api = client.query_api()
 
-        current_time = time.time()
-        if time_range == "1h":
-            cutoff_time = current_time - 3600
-        elif time_range == "24h":
-            cutoff_time = current_time - 86400
-        else:
-            cutoff_time = 0  # No cutoff for 'all' range
+        # Build the Flux query
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+              |> range(start: -{get_influxdb_range(time_range)})
+              |> filter(fn: (r) => r._measurement == "item_prices")
+              |> filter(fn: (r) => r.item_id == "{item_name}")
+              |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+              |> yield(name: "mean")
+        """
 
-        filtered_history = [entry for entry in history if entry["timestamp"] >= cutoff_time]
+        # Execute the query
+        tables = query_api.query(query)
 
-        return jsonify(filtered_history)
+        # Process the results
+        history = []
+        for table in tables:
+            for record in table.records:
+                history.append({
+                    "timestamp": record.get_time().timestamp(),  # Convert to Unix timestamp
+                    "buy_price": record.get_value_by_key("buy_price"),
+                    "sell_price": record.get_value_by_key("sell_price")
+                })
+
+        client.close()
+
+        return jsonify(history)
     except Exception as e:
-        # Log the error for debugging
-        print(f"Error fetching graph data for item {item_name}: {e}")
+        print(f"Error fetching graph data from InfluxDB for item {item_name}: {e}")
         return jsonify({"error": "Failed to retrieve graph data. Please try again later."}), 500
+
+def get_influxdb_range(time_range):
+    """
+    Helper function to convert the time range parameter to an InfluxDB range string.
+    """
+    if time_range == "1h":
+        return "1h"
+    elif time_range == "24h":
+        return "24h"
+    else:
+        return "30d"  # Default to 30 days if 'all' or invalid range
