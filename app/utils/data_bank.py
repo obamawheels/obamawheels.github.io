@@ -2,6 +2,7 @@ import os
 from influxdb_client import InfluxDBClient, Point
 import time
 import threading
+import logging
 import sqlite3  # Keep for now
 
 # InfluxDB Configuration (Read from environment variables)
@@ -83,15 +84,20 @@ def start_background_thread():
             try:
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
-                    timestamp = int(time.time()) # Get current timestamp in seconds
-                    save_data(item_id, item_data['buy_price'], item_data['sell_price'])  # Save to SQLite (for now)
-                    write_to_influxdb(item_id, item_data['buy_price'], item_data['sell_price'], timestamp)  # Save to InfluxDB
-                print("Data successfully updated and saved to the database.")
+                    logging.info(f"Item data for item_id {item_id}: {item_data}")  # Add this line
+
+                    buy_price = item_data.get('buy_price', 0)  # Default to 0 if 'buy_price' is missing
+                    sell_price = item_data.get('sell_price', 0)  # Default to 0 if 'sell_price' is missing
+
+                    timestamp = int(time.time())
+                    save_data(item_id, buy_price, sell_price)
+                    write_to_influxdb(item_id, buy_price, sell_price, timestamp)
+                    logging.info(f"Data successfully updated and saved to the database and InfluxDB: Item ID = {item_id}")
             except Exception as e:
-                print(f"Error updating data: {e}")
+                logging.error(f"Error updating data: {e}")
             time.sleep(60)  # Wait 60 seconds before the next update
 
-    threading.Thread(target=background_data_updater, daemon=True).start()
+        threading.Thread(target=background_data_updater, daemon=True).start()
 
 # Initialize the SQLite database
 init_db()
