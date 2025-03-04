@@ -43,15 +43,11 @@ def graph_data():
                 bp_value = record.get_value_by_key("buy_price")
                 sp_value = record.get_value_by_key("sell_price")
 
-                if bp_value is None or sp_value is None:
-                    continue
+                # Check the values and types
+                print(f"Raw buy_price value: {bp_value}, Type: {type(bp_value)}")
+                print(f"Raw sell_price value: {sp_value}, Type: {type(sp_value)}")
 
-                try:
-                    bp_value = float(bp_value)
-                    sp_value = float(sp_value)
-                except:
-                    continue
-                
+                # Append the data to the history list
                 history.append({
                     "timestamp": record.get_time().timestamp(),  # Convert to Unix timestamp
                     "buy_price": bp_value,
@@ -65,17 +61,13 @@ def graph_data():
         print(f"Error fetching graph data from InfluxDB for item {item_name}: {e}")
         return jsonify({"error": "Failed to retrieve graph data. Please try again later."}), 500
 
-# In graph_data.py, update the function:
 def get_influxdb_range(time_range):
+    """
+    Helper function to convert the time range parameter to an InfluxDB range string.
+    """
     if time_range == "1h":
         return "1h"
     elif time_range == "24h":
         return "24h"
-    elif time_range == "1w":
-        return "7d"
-    elif time_range == "1y":
-        return "365d"
-    elif time_range == "all":
-        return "10000d"  # Fetch as much data as possible
     else:
-        return "30d"
+        return "30d"  # Default to 30 days if 'all' or invalid range
