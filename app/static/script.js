@@ -605,89 +605,340 @@
     }
 
     /**********************************************************************
-     * 7.4) CHART LOGIC (Basic line chart)
+     * 7.4) CHART LOGIC (Trendlines, Forecast, Holt-Winters)
      **********************************************************************/
-    function updateChart() {
-      if(!graphHistoryData.length||!priceGraphCtx) {
-        console.warn("No graph history or canvas!");
-        return;
-      }
 
+    // advanced computations
+    function computeLinearTrendline(dataPoints) {
+      const n= dataPoints.length;
+      if(n<2)return [];
+      let sumX=0, sumY=0, sumXY=0, sumXX=0;
+      for(let i=0; i<n; i++){
+        const x= dataPoints[i].x.getTime();
+        const y= dataPoints[i].y;
+        sumX+= x; sumY+= y; sumXY+= x*y; sumXX+= x*x;
+      }
+      const slope= (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
+      const intercept= (sumY- slope*sumX)/n;
+      return dataPoints.map(pt=>({
+        x: pt.x,
+        y: intercept + slope*pt.x.getTime()
+      }));
+    }
+    function computeExponentialTrendline(dataPoints) {
+      const n= dataPoints.length;
+      if(n<2)return[];
+      let sumX=0, sumLogY=0, sumXLogY=0, sumXX=0;
+      for(let i=0;i<n;i++){
+        const x= dataPoints[i].x.getTime();
+        const y= dataPoints[i].y;
+        if(y<=0)continue;
+        const logY= Math.log(y);
+        sumX+= x; sumLogY+= logY; sumXLogY+= x*logY; sumXX+= x*x;
+      }
+      const slope= (n*sumXLogY - sumX*sumLogY)/(n*sumXX - sumX*sumX);
+      const intercept= (sumLogY - slope*sumX)/n;
+      return dataPoints.map(pt=>({
+        x:pt.x,
+        y: Math.exp(intercept + slope*pt.x.getTime())
+      }));
+    }
+    function computeMovingAverage(dataPoints, windowSize=5){
+      const result= [];
+      for(let i=0; i<dataPoints.length; i++){
+        let sum=0, count=0;
+        for(let j=Math.max(0,i-windowSize+1); j<=i; j++){
+          sum+= dataPoints[j].y;
+          count++;
+        }
+        result.push({ x:dataPoints[i].x, y: sum/count });
+      }
+      return result;
+    }
+    function computeForecast(dataPoints,numPoints=10){
+      if(dataPoints.length<2)return[];
+      const n= dataPoints.length;
+      let sumX=0, sumY=0, sumXY=0, sumXX=0;
+      for(let i=0;i<n;i++){
+        const x= dataPoints[i].x.getTime();
+        const y= dataPoints[i].y;
+        sumX+= x; sumY+= y; sumXY+= x*y; sumXX+= x*x;
+      }
+      const slope= (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
+      const intercept= (sumY- slope*sumX)/n;
+      const interval= (dataPoints[n-1].x.getTime()- dataPoints[0].x.getTime())/(n-1);
+      const forecast= [];
+      let lastTime= dataPoints[n-1].x.getTime();
+      for(let i=1;i<=numPoints;i++){
+        const newX= lastTime + i* interval;
+        forecast.push({ x:new Date(newX), y: intercept + slope* newX });
+      }
+      return forecast;
+    }
+    function holtWintersForecast(dataPoints,periods=50,alpha=0.6,beta=0.1,gamma=0.1,seasonLen=0){
+      if(dataPoints.length<3)return[];
+      const times= dataPoints.map(dp=> dp.x.getTime());
+      const values= dataPoints.map(dp=> dp.y);
+      const n= values.length;
+
+      let level= values[0];
+      let trend= values[1]- values[0];
+      let season= [];
+      if(seasonLen>0){
+        for(let i=0;i<seasonLen;i++){
+          season[i]= values[i]- level;
+        }
+      }
+      const result= [];
+      for(let i=0;i<n;i++){
+        const s= (seasonLen>0)? season[i%seasonLen]: 0;
+        result.push({ x:new Date(times[i]), y: level+ trend + s });
+        const actual= values[i];
+        const prevLevel= level;
+        level= alpha*(actual- s) + (1-alpha)*(level+ trend);
+        trend= beta*(level- prevLevel) + (1-beta)*trend;
+        if(seasonLen>0){
+          season[i%seasonLen]= gamma*(actual- level)+(1-gamma)* s;
+        }
+      }
+      const interval= (times[n-1]- times[0])/(n-1);
+      let lastTime= times[n-1];
+      for(let i=1;i<=periods;i++){
+        lastTime+= interval;
+        const s= (seasonLen>0)? season[(n-1+i)%seasonLen]: 0;
+        const fc= level + i* trend + s;
+        result.push({ x:new Date(lastTime), y:fc });
+      }
+      return result;
+    }
+    function computeForecastAccuracy(dataPoints, forecastFn, horizon){
+      if(dataPoints.length<= horizon)return 0;
+      const training= dataPoints.slice(0, dataPoints.length- horizon);
+      const actualData= dataPoints.slice(dataPoints.length- horizon);
+      const predictedFull= forecastFn(training, horizon);
+      const forecasted= predictedFull.slice(-horizon);
+
+      let totalError= 0, count=0;
+      for(let i=0;i<horizon;i++){
+        const fc= forecasted[i]?.y??0;
+        const ac= actualData[i]?.y??0;
+        if(fc!==0){
+          totalError+= ((fc- ac)/ fc)* 100;
+          count++;
+        }
+      }
+      return count? totalError/ count :0;
+    }
+
+    function updateChart() {
+      if(!graphHistoryData.length||!priceGraphCtx)return;
       // transform raw data => x: Date, y: numeric
-      const buyDataPoints = graphHistoryData.map(h => ({
-        x: new Date(h.timestamp * 1000),  // Timestamps are in seconds
+      const buyDataPoints= graphHistoryData.map(h=>({
+        x: new Date(h.timestamp*1000),
         y: h.buy_price
       }));
-
-      const sellDataPoints = graphHistoryData.map(h => ({
-        x: new Date(h.timestamp * 1000),  // Timestamps are in seconds
+      const sellDataPoints= graphHistoryData.map(h=>({
+        x: new Date(h.timestamp*1000),
         y: h.sell_price
       }));
+      const minTime= new Date(Math.min(...buyDataPoints.map(pt=> pt.x.getTime())));
+      const maxTime= new Date(Math.max(...buyDataPoints.map(pt=> pt.x.getTime())));
 
-      const minTime = new Date(Math.min(...buyDataPoints.map(pt => pt.x.getTime())));
-      const maxTime = new Date(Math.max(...buyDataPoints.map(pt => pt.x.getTime())));
-
-      const datasets = [
+      const datasets= [
         {
-          label: 'Buy Price',
+          label:'Buy Price',
           data: buyDataPoints,
-          borderColor: '#00ccff',
-          fill: false,
-          tension: 0.3
+          borderColor:'#00ccff',
+          fill:false,
+          tension:0.3
         },
         {
-          label: 'Sell Price',
+          label:'Sell Price',
           data: sellDataPoints,
-          borderColor: '#ff5733',
-          fill: false,
-          tension: 0.3
+          borderColor:'#ff5733',
+          fill:false,
+          tension:0.3
         }
       ];
 
+      if(toggleLinear?.checked){
+        datasets.push({
+          label:'Buy Linear',
+          data: computeLinearTrendline(buyDataPoints),
+          borderColor:'#00ccff',
+          borderDash:[5,5],
+          fill:false,
+          tension:0
+        },{
+          label:'Sell Linear',
+          data: computeLinearTrendline(sellDataPoints),
+          borderColor:'#ff5733',
+          borderDash:[5,5],
+          fill:false,
+          tension:0
+        });
+      }
+      if(toggleExponential?.checked){
+        datasets.push({
+          label:'Buy Exponential',
+          data: computeExponentialTrendline(buyDataPoints),
+          borderColor:'#00ccff',
+          borderDash:[10,5],
+          fill:false,
+          tension:0
+        },{
+          label:'Sell Exponential',
+          data: computeExponentialTrendline(sellDataPoints),
+          borderColor:'#ff5733',
+          borderDash:[10,5],
+          fill:false,
+          tension:0
+        });
+      }
+      if(toggleMA?.checked){
+        datasets.push({
+          label:'Buy MA',
+          data: computeMovingAverage(buyDataPoints),
+          borderColor:'#00ccff',
+          borderDash:[2,2],
+          fill:false,
+          tension:0
+        },{
+          label:'Sell MA',
+          data: computeMovingAverage(sellDataPoints),
+          borderColor:'#ff5733',
+          borderDash:[2,2],
+          fill:false,
+          tension:0
+        });
+      }
+      if(toggleForecast?.checked){
+        datasets.push({
+          label:'Buy Forecast',
+          data: computeForecast(buyDataPoints),
+          borderColor:'#00ccff',
+          borderDash:[15,5],
+          fill:false,
+          tension:0
+        },{
+          label:'Sell Forecast',
+          data: computeForecast(sellDataPoints),
+          borderColor:'#ff5733',
+          borderDash:[15,5],
+          fill:false,
+          tension:0
+        });
+      }
+      if(toggleHoltWinters?.checked){
+        const buyHW= holtWintersForecast(buyDataPoints,50);
+        const sellHW=holtWintersForecast(sellDataPoints,50);
+        datasets.push({
+          label:'Buy HW',
+          data: buyHW,
+          borderColor:'#00ccff',
+          borderDash:[5,10],
+          fill:false,
+          tension:0
+        },{
+          label:'Sell HW',
+          data: sellHW,
+          borderColor:'#ff5733',
+          borderDash:[5,10],
+          fill:false,
+          tension:0
+        });
+      }
+
+      // recommended lines
       const recommendedBuy= Math.min(...buyDataPoints.map(pt=> pt.y));
       const recommendedSell= Math.max(...sellDataPoints.map(pt=> pt.y));
+      datasets.push({
+        label:'Recommended Buy',
+        data:[ {x:minTime, y:recommendedBuy}, {x:maxTime,y:recommendedBuy}],
+        borderColor:'#00ff00',
+        borderDash:[8,4],
+        fill:false,
+        pointRadius:0
+      },{
+        label:'Recommended Sell',
+        data:[ {x:minTime,y:recommendedSell},{x:maxTime,y:recommendedSell}],
+        borderColor:'#ff00ff',
+        borderDash:[8,4],
+        fill:false,
+        pointRadius:0
+      });
+
+      // user-specified target
+      const targetVal= parseFloat(targetSellInput?.value);
+      if(!isNaN(targetVal)){
+        datasets.push({
+          label:'Target Sell Price',
+          data:[ {x:minTime,y:targetVal},{x:maxTime,y:targetVal}],
+          borderColor:'#ffff00',
+          borderDash:[2,2],
+          fill:false,
+          pointRadius:0
+        });
+      }
+
       recommendedDiv.textContent= `Recommended Buy: ${recommendedBuy.toFixed(2)} | Recommended Sell: ${recommendedSell.toFixed(2)}`;
+
       // create or destroy old chart
       if(chart) chart.destroy();
-      chart = new Chart(priceGraphCtx, {
-        type: 'line',
+      chart= new Chart(priceGraphCtx, {
+        type:'line',
         data: { datasets },
-        options: {
+        options:{
           animation: { duration:600, easing:'easeInOutQuad' },
-          scales: {
-            x: {
-              type: 'time',
-              time: { unit: 'minute', tooltipFormat: 'Pp' },
-              min: minTime,
-              max: maxTime,
-              ticks: { color: document.body.classList.contains('light-theme') ? '#000' : '#fff' },
-              grid: { color: document.body.classList.contains('light-theme') ? '#ccc' : '#444' }
+          scales:{
+            x:{
+              type:'time',
+              time:{ unit:'minute', tooltipFormat:'Pp' },
+              min:minTime,
+              max:maxTime,
+              ticks:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' },
+              grid:{ color: document.body.classList.contains('light-theme')?'#ccc':'#444'}
             },
-            y: {
-              ticks: { color: document.body.classList.contains('light-theme') ? '#000' : '#fff' },
-              grid: { color: document.body.classList.contains('light-theme') ? '#ccc' : '#444' }
+            y:{
+              ticks:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' },
+              grid:{ color: document.body.classList.contains('light-theme')?'#ccc':'#444'}
             }
           },
-          plugins: {
-            zoom: {
-              pan: { enabled: true, mode: 'x' },
-              zoom: { wheel: { enabled: false }, pinch: { enabled: false }, mode: 'x' }
+          plugins:{
+            zoom:{
+              pan:{ enabled:true, mode:'x'},
+              zoom:{ wheel:{enabled:false}, pinch:{enabled:false}, mode:'x'}
             },
-            tooltip: {
-              callbacks: {
+            tooltip:{
+              callbacks:{
                 label: ctx=> `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
               }
             },
-            legend: {
-              labels: { color: document.body.classList.contains('light-theme') ? '#000' : '#fff' }
+            legend:{
+              labels:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' }
             }
           }
         }
       });
+
+      // forecast accuracy
+      const horizon=5; // horizon for simple forecast
+      const buyAcc   = computeForecastAccuracy(buyDataPoints, computeForecast, horizon);
+      const sellAcc  = computeForecastAccuracy(sellDataPoints, computeForecast, horizon);
+      const simpleAvg= (buyAcc + sellAcc)/2;
+
+      // Holt-Winters accuracy
+      const hwBuyAcc = computeForecastAccuracy(buyDataPoints, holtWintersForecast, 50);
+      const hwSellAcc= computeForecastAccuracy(sellDataPoints, holtWintersForecast, 50);
+      const hwAvg    = (hwBuyAcc + hwSellAcc)/2;
+
+      forecastAccuracyDiv.textContent=
+        `Simple Forecast: B ${buyAcc.toFixed(2)}%, S ${sellAcc.toFixed(2)}%, Avg ${simpleAvg.toFixed(2)}% | `+
+        `Holt-Winters: B ${hwBuyAcc.toFixed(2)}%, S ${hwSellAcc.toFixed(2)}%, Avg ${hwAvg.toFixed(2)}%`;
     }
 
     /**********************************************************************
-     * 7.5) TIME RANGE BUTTONS
+     * 7.5) TIME RANGE BUTTONS & DOWNLOAD
      **********************************************************************/
     timeRangeBtns.forEach(btn=>{
       btn.addEventListener('click',()=>{
@@ -695,7 +946,6 @@
         if(currentItem) fetchGraphData(currentItem, range);
       });
     });
-
     if(downloadBtn){
       downloadBtn.addEventListener('click',()=>{
         if(chart){
@@ -709,9 +959,101 @@
     }
 
     /**********************************************************************
-     * 7.7) REBUILD CHART WHEN TOGGLES CHANGE
+     * 7.6) TOP MARGINS
      **********************************************************************/
-    []/*The other extra options were removed to make the code as simple as possible*/.forEach(el=>{
+    if(refreshTopMargins){
+      refreshTopMargins.addEventListener('click', fetchTopMargins);
+    }
+    async function fetchTopMargins(){
+      try{
+        showLoader(true);
+        const sortBy= document.getElementById('sort-by').value;
+        const order= document.getElementById('order').value;
+        const res= await fetch(`/top-margins?sort_by=${sortBy}&order=${order}`);
+        if(!res.ok) throw new Error("top-margins fetch fail");
+        const items= await res.json();
+        topMarginsDiv.innerHTML= items.map(item=>`
+          <div class="item-card">
+            <p><span>Item:</span> ${item.item_id}</p>
+            <p><span>Margin:</span> ${item.margin}</p>
+            <p><span>Buy Price:</span> ${item.buy_price}</p>
+            <p><span>Sell Price:</span> ${item.sell_price}</p>
+            <p><span>Demand:</span> ${item.demand??'N/A'}</p>
+            <p><span>Supply:</span> ${item.supply??'N/A'}</p>
+          </div>
+        `).join('');
+      } catch(err){
+        console.error("Top margins error:",err);
+        topMarginsDiv.innerHTML='<p>Error loading top margins. Please try again.</p>';
+      } finally{
+        showLoader(false);
+      }
+    }
+    fetchTopMargins(); // optional initial load
+
+    /**********************************************************************
+     * 7.7) PROFITABILITY
+     **********************************************************************/
+    if(calcProfitButton){
+      calcProfitButton.addEventListener('click', async()=>{
+        const coins= parseFloat(coinsInput.value)||0;
+        const difficulty= parseFloat(difficultyInput.value)||1;
+        try{
+          showLoader(true);
+          const res= await fetch(`/profitability?coins=${coins}&difficulty=${difficulty}`);
+          if(!res.ok) throw new Error("profitability fetch fail");
+          const results= await res.json();
+          profitabilityRes.innerHTML= results.map(r=>`
+            <div class="item-card">
+              <p><strong>Item:</strong> ${r.item_id}</p>
+              <p><strong>Profit/min:</strong> ${r.profit_per_minute.toFixed(2)}</p>
+              <p><strong>Profit/hour:</strong> ${r.profit_per_hour.toFixed(2)}</p>
+            </div>
+          `).join('');
+        } catch(err){
+          console.error("Profit calc error:", err);
+          profitabilityRes.innerHTML='<p>Error calculating profitability.</p>';
+        } finally{
+          showLoader(false);
+        }
+      });
+    }
+
+    /**********************************************************************
+     * 7.8) TOP VARIATIONS
+     **********************************************************************/
+    if(refreshTopVarBtn){
+      refreshTopVarBtn.addEventListener('click', fetchTopVariations);
+    }
+    async function fetchTopVariations(){
+      const timeRange= variationTimeSel.value;
+      try{
+        showLoader(true);
+        const res= await fetch(`/top-variations?time_range=${timeRange}`);
+        if(!res.ok) throw new Error("top-variations fetch fail");
+        const items= await res.json();
+        topVariationsDiv.innerHTML= items.map(item=>`
+          <div class="item-card">
+            <p><span>Item:</span> ${item.item_id}</p>
+            <p><span>Buy Price Change:</span> ${item.buy_price_change}%</p>
+            <p><span>Sell Price Change:</span> ${item.sell_price_change}%</p>
+            <p><span>Median Buy Price:</span> ${item.median_buy_price}</p>
+            <p><span>Median Sell Price:</span> ${item.median_sell_price}</p>
+          </div>
+        `).join('');
+      } catch(err){
+        console.error("Top variations error:", err);
+        topVariationsDiv.innerHTML='<p>Error loading top variations. Please try again later.</p>';
+      } finally{
+        showLoader(false);
+      }
+    }
+    fetchTopVariations(); // optional initial
+
+    /**********************************************************************
+     * 7.9) REBUILD CHART WHEN TOGGLES CHANGE
+     **********************************************************************/
+    [toggleLinear, toggleExponential, toggleMA, toggleForecast, toggleHoltWinters].forEach(el=>{
       if(el){
         el.addEventListener('change', ()=> {
           updateChart();
