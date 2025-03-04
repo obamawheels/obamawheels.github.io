@@ -53,19 +53,13 @@ def start_background_thread():
             try:
                 tracker.update_data()
                 for item_id, item_data in tracker.data.items():
-
-                    # Debug and check where the prices are located
-
-                    #Get prices properly
                     buy_price = item_data.get('quick_status',{}).get('buyPrice', 0)  # Default to 0 if 'buyPrice' is missing
-                    sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing
-
-                    #Logging to help debug!
-
+                    sell_price = item_data.get('quick_status', {}).get('sellPrice', 0)  # Default to 0 if 'sellPrice' is missing           
                     timestamp = int(time.time())
+                    logging.info(f"Writing {item_id}: buy={buy_price}, sell={sell_price}, ts={timestamp}")
                     write_to_influxdb(item_id, buy_price, sell_price, timestamp)
-
-                logging.info(f"Data successfully updated and saved to the database and InfluxDB")
+                    logging.info(f"Data successfully updated and saved to the database and InfluxDB")
+                logging.info("Data updated successfully.")
             except Exception as e:
                 logging.error(f"Error updating data: {e}")
             #It's important that time is at the end.

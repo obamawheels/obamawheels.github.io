@@ -26,12 +26,13 @@ def graph_data():
         # Build the Flux query
         query = f"""
             from(bucket: "{INFLUXDB_BUCKET}")
-              |> range(start: -{get_influxdb_range(time_range)})
-              |> filter(fn: (r) => r._measurement == "item_prices")
-              |> filter(fn: (r) => r.item_id == "{item_name}")
-              |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-              |> yield(name: "mean")
-        """
+                |> range(start: -{get_influxdb_range(time_range)})
+                |> filter(fn: (r) => r._measurement == "item_prices")
+                 |> filter(fn: (r) => r.item_id == "{item_name}")
+                |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)  // Aggregate into 1-minute windows
+                |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                |> yield(name: "mean")
+                """
 
         # Execute the query
         tables = query_api.query(query)

@@ -719,8 +719,8 @@
     function updateChart() {
       if(!graphHistoryData.length||!priceGraphCtx)return;
       // transform raw data => x: Date, y: numeric
-      const buyDataPoints= graphHistoryData.map(h=>({
-        x: new Date(h.timestamp*1000),
+      const buyDataPoints = graphHistoryData.map(h => ({
+        x: new Date(h.timestamp * 1000).toISOString(),  // Parse as UTC
         y: h.buy_price
       }));
       const sellDataPoints= graphHistoryData.map(h=>({
