@@ -571,19 +571,22 @@
     /**********************************************************************
      * 7.3) GRAPH DATA
      **********************************************************************/
-    async function fetchGraphData(itemName, timeRange='all') {
-      try{
-        showLoader(true);
-        const url= `/graph-data?item=${encodeURIComponent(itemName)}&range=${encodeURIComponent(timeRange)}`;
-        const res= await fetch(url);
-        if(!res.ok)throw new Error("graph-data fetch fail");
-        graphHistoryData= await res.json();
+    async function fetchGraphData(itemName, timeRange = 'all') {
+      try {
+        const res = await fetch(`/graph-data?item=${itemName}&range=${timeRange}`);
+        if (!res.ok) throw new Error("Failed to fetch data");
+        graphHistoryData = await res.json();
+    
+        // Add this check:
+        if (!graphHistoryData.length) {
+          console.warn("No data for this time range");
+          resultDiv.innerHTML = `<p>No data found for ${timeRange}.</p>`;
+          if (chart) chart.destroy();
+          return;
+        }
         updateChart();
-      } catch(err){
-        console.error("Graph data error:",err);
-        resultDiv.innerHTML='<p>Error loading graph data. Please try again later.</p>';
-      } finally{
-        showLoader(false);
+      } catch (err) {
+        console.error("Error:", err);
       }
     }
 
@@ -876,7 +879,7 @@
           scales:{
             x:{
               type:'time',
-              time:{ unit:'minute', tooltipFormat:'Pp' },
+              time:{ unit:'auto', tooltipFormat:'Pp' },
               min:minTime,
               max:maxTime,
               ticks:{ color: document.body.classList.contains('light-theme')?'#000':'#fff' },

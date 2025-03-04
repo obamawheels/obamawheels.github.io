@@ -62,12 +62,12 @@ def graph_data():
         return jsonify({"error": "Failed to retrieve graph data. Please try again later."}), 500
 
 def get_influxdb_range(time_range):
-    """
-    Helper function to convert the time range parameter to an InfluxDB range string.
-    """
-    if time_range == "1h":
-        return "1h"
-    elif time_range == "24h":
-        return "24h"
-    else:
-        return "30d"  # Default to 30 days if 'all' or invalid range
+    """Convert frontend time range to InfluxDB-compatible duration."""
+    ranges = {
+        "1h": "1h",
+        "24h": "24h",
+        "1w": "7d",
+        "1y": "365d",
+        "all": "10000d"  # Fetch all data
+    }
+    return ranges.get(time_range, "30d")  # Default to 30d
