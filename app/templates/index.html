@@ -6,15 +6,17 @@
     |                      DESTINY-STYLE BZTRACKER — SUPER-EXPANDED                  |
     =================================================================================
     This HTML references:
-      • A canvas-based star system behind everything
-      • 5 Planets (Umbra, Pyra, Astris, Borealis, Eclipse) w/ advanced animations
+      • A canvas-based star system backdrop
+      • 5 Planets (Umbra, Pyra, Astris, Borealis, Eclipse) with advanced animations
       • Hidden feature sections for each planet
-      • Background music, advanced transitions, minimal top-level UI except the planets
-      • The “tons more visuals” approach
+      • Background music, advanced transitions, and a minimal top-level UI
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cinematic BZTracker — Extended Star System</title>
+
+  <!-- Model Viewer library for 3D .glb models -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <!-- Chart.js libraries for the Price Graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -29,8 +31,7 @@
     ===========================================================================
     |                       COSMIC CANVAS BACKDROP                            |
     ===========================================================================
-    A full-screen canvas for multi-layer star + meteor + comet rendering. 
-    We define #cosmicCanvas in styles.css, placed behind everything at z-index:-1.
+    A full-screen canvas for multi-layer star, meteor, and comet rendering.
   -->
   <canvas id="cosmicCanvas"></canvas>
 
@@ -42,7 +43,7 @@
     On click, it transitions to a hidden section with real BZTracker features.
   -->
   <section id="planetSelect" class="planet-select">
-    <!-- Center Planet => Umbra (Search + Graph) -->
+    <!-- Center Planet => Umbra (Search & Graph) -->
     <div class="planet planet-umbra center-planet" data-target="planet-umbra-feature">
       <div class="planet-image"></div>
       <div class="planet-name">Umbra</div>
@@ -50,7 +51,9 @@
 
     <!-- Pyra => Top Margins (Deep maroon vibe) -->
     <div class="planet planet-pyra top-left" data-target="planet-pyra-feature">
-      <div class="planet-image"></div>
+      <!-- Replace the static background with a 3D model viewer -->
+      <model-viewer src="/static/lava_planet.glb" auto-rotate camera-controls style="width: 140px; height: 140px;">
+      </model-viewer>
       <div class="planet-name">Pyra</div>
     </div>
 
@@ -77,11 +80,10 @@
     ===========================================================================
     |                    FEATURE SECTIONS (One per Planet)                    |
     ===========================================================================
-    Each hidden by default, revealed on planet click. 
-    All remain behind a “Back to Star Map” button to return.
+    Each section is hidden by default and revealed on planet click.
   -->
 
-  <!-- 1) Umbra: Search + Graph -->
+  <!-- 1) Umbra: Search & Graph -->
   <section id="planet-umbra-feature" class="feature-section umbra-theme" hidden>
     <h1>Umbra — Search & Graph</h1>
     <div class="feature-content">
