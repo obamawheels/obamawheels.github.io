@@ -40,8 +40,8 @@ def graph_data():
         history = []
         for table in tables:
             for record in table.records:
-                bp_value = record.values.get("buy_price")
-                sp_value = record.values.get("sell_price")
+                bp_value = record.get_value_by_key("buy_price")
+                sp_value = record.get_value_by_key("sell_price")
 
                 if bp_value is None or sp_value is None:
                     continue
@@ -51,7 +51,7 @@ def graph_data():
                     sp_value = float(sp_value)
                 except:
                     continue
-
+                
                 history.append({
                     "timestamp": record.get_time().timestamp(),  # Convert to Unix timestamp
                     "buy_price": bp_value,
