@@ -40,8 +40,8 @@ def graph_data():
         history = []
         for table in tables:
             for record in table.records:
-                bp_value = record.get_value_by_key("buy_price")
-                sp_value = record.get_value_by_key("sell_price")
+                bp_value = record.values.get("buy_price")
+                sp_value = record.values.get("sell_price")
 
                 # Check the values and types
                 print(f"Raw buy_price value: {bp_value}, Type: {type(bp_value)}")
