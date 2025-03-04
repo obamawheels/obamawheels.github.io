@@ -616,16 +616,23 @@
           data: buyDataPoints,
           borderColor: '#00ccff',
           fill: false,
-          tension: 0.3
+          tension: 0.3,
+          spanGaps: true
         },
         {
           label: 'Sell Price',
           data: sellDataPoints,
           borderColor: '#ff5733',
           fill: false,
-          tension: 0.3
+          tension: 0.3,
+          spanGaps: true
         }
       ];
+
+      if (!buyDataPoints.length && !sellDataPoints.length) {
+        console.warn("No data points for chart!");
+        return;
+      }
 
       const recommendedBuy= Math.min(...buyDataPoints.map(pt=> pt.y));
       const recommendedSell= Math.max(...sellDataPoints.map(pt=> pt.y));

@@ -25,7 +25,7 @@ def write_to_influxdb(item_id, buy_price, sell_price, timestamp):
 
     try:
         point = Point("item_prices") \
-            .tag("item_id", item_id) \
+            .tag("item_id", item_id.lower()) \
             .field("buy_price", float(buy_price))  \
             .field("sell_price", float(sell_price)) \
             .tag("valid_prices", True if buy_price > 0 and sell_price > 0 else False) \
