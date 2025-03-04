@@ -1,160 +1,140 @@
 /****************************************************************************
- *                     DESTINY-STYLE BZTRACKER — REFACTORED & EXPANDED JS
+ *                     DESTINY-STYLE BZTRACKER — ULTRA EXPANDED JS
+ *  No mock data, advanced starfield, planet-based nav, chart toggles, etc.
  *  
- *  Key Improvements:
- *   1) Config Object for cosmic entity settings (stars, meteors, comets)
- *   2) Object Pooling to reduce GC overhead
- *   3) fetchWithErrorHandling for consistent error handling
- *   4) Single utility for linear/exponential trendlines (optional usage)
- *   5) Proper Chart.js cleanup (destroy + null)
- *   6) Fullscreen mode via requestFullscreen for better browser support
- *   7) More realistic stars: random color tint & radius, improved twinkle
- *   8) Code split into smaller helper functions for clarity
+ *  Overview of This Massive File:
+ *   1) Global Vars & Config
+ *   2) Starfield Classes & Setup (Stars, Meteors, Comets)
+ *   3) Planet Navigation / Hidden Features
+ *   4) Sound Toggle
+ *   5) Theme Toggle
+ *   6) BZTracker: Search, Graph, Top Margins, Profitability, Variations
+ *      - Real Endpoints ("/search", "/graph-data", "/top-margins", etc.)
+ *      - No mock data: All fetch calls must match your backend routes
+ *   7) Chart.js Logic (Trendlines, Forecast, Holt-Winters, etc.)
+ *   8) Extra Helper Functions & Possibly Repeated Commentary
+ *
+ *  The script is wrapped in an IIFE to avoid global scope pollution.
  ****************************************************************************/
 (function() {
   "use strict";
 
   /**************************************************************************
-   * 1) CONFIGURATION
+   * 1) GLOBAL VARS & CONFIG
    **************************************************************************/
-  const config = {
-    stars: {
-      count: 1200,
-      speedBase: 0.06,
-      speedVariation: 0.04,
-      twinkleChance: 0.02,    // slight increase for more “sparkle”
-      maxBrightness: 1.0,
-      minBrightness: 0.2,     // allow dimmer stars
-      radiusMin: 0.5,         // smaller minimum radius
-      radiusMax: 2.5,         // bigger maximum radius
-      colorVariation: 20      // up to +/- 20 in hue for subtle color changes
-    },
-    meteors: {
-      spawnRate: 0.004,
-      baseSpeed: 1.7,
-      lifeMin: 80,
-      lifeMax: 200,
-      lengthMin: 80,
-      lengthMax: 180
-    },
-    comets: {
-      spawnRate: 0.002,
-      baseSpeed: 0.4,
-      trailLength: 100
-    },
-    cosmic: {
-      cursorRepulsionRadius: 120,
-      cursorForce: 0.08
-    }
-  };
 
-  /**************************************************************************
-   * 2) GLOBALS & OBJECT POOLING
-   **************************************************************************/
+  /* These global references and constants define the starfield:
+     - canvas element
+     - star arrays
+     - spawn rates, speeds
+     - user input tracking (mouse)
+  */
   let cosmicCanvas, ctx;
-  let width = 0, height = 0;
-  let mouseX = 0, mouseY = 0;
-  let isMouseMoving = false;
-  let mouseMoveTimeout = null;
+  let width = 0, height = 0;        // canvas dimensions
+  const cosmicEntities = [];        // holds all Star, Meteor, Comet objects
+  let mouseX = 0, mouseY = 0;       // track mouse position
+  let isMouseMoving = false;        // we only do advanced repulsion if user is active
+  let mouseMoveTimeout = null;      // used to set isMouseMoving=false after inactivity
 
-  const cosmicEntities = []; // store active cosmic objects (stars, meteors, comets)
+  // Star system config
+  const NUM_STARS               = 1200; // number of base drifting stars
+  const STAR_SPEED_BASE         = 0.06; // baseline star drift speed
+  const STAR_SPEED_VARIATION    = 0.04; // random extra speed
+  const CURSOR_REPULSION_RADIUS = 120;  // how close to the mouse we do repulsion
+  const CURSOR_FORCE            = 0.08; // how strong the force is
 
-  // Simple object pool class
-  class ObjectPool {
-    constructor(createFn) {
-      this.pool = [];
-      this.createFn = createFn;
-    }
-    acquire() {
-      return this.pool.pop() || this.createFn();
-    }
-    release(obj) {
-      this.pool.push(obj);
-    }
-  }
+  // Meteor & Comet config
+  const METEOR_SPAWN_RATE       = 0.004; // chance per frame ( ~0.4% ) to spawn a meteor
+  const METEOR_BASE_SPEED       = 1.7;   // base speed for meteors
+  const COMET_SPAWN_RATE        = 0.002; // chance to spawn a comet (~0.2% / frame)
+  const COMET_BASE_SPEED        = 0.4;   // slower than meteors
+  const COMET_TRAIL_LENGTH      = 100;   // how many positions to store for a comet's tail
 
-  // Pools for each entity type
-  const starPool   = new ObjectPool(() => new Star());
-  const meteorPool = new ObjectPool(() => new Meteor());
-  const cometPool  = new ObjectPool(() => new Comet());
+  // Star Flicker config
+  const STAR_TWINKLE_CHANCE     = 0.01;  // chance star changes brightness each frame
+  const STAR_MAX_BRIGHTNESS     = 1.0;   // maximum brightness factor
+  const STAR_MIN_BRIGHTNESS     = 0.3;   // minimum brightness factor
+
+  // BZTracker references
+  let currentItem       = '';       // which item is selected for the graph, etc.
+  let graphHistoryData  = [];       // data from /graph-data
+  let chart             = null;     // Chart.js instance if we have a graph
 
   /**************************************************************************
-   * 3) STAR, METEOR, COMET CLASSES
+   * 2) STARFIELD CLASSES: STAR, METEOR, COMET
    **************************************************************************/
+  /*
+    We define three classes for cosmic entities. Each has:
+    - constructor
+    - reset() method to randomize or place them at screen edges
+    - update() method called each frame
+    - draw() method to render on the canvas
+  */
+
+  // Utility for random numbers
   function rand(min, max) {
     return Math.random() * (max - min) + min;
   }
 
-  // Helper to get a random star color with slight hue variation
-  function randomStarColor() {
-    // base hue around ~200-280 for a bluish star, or vary as you like
-    const baseHue = rand(180, 300);
-    // random variation
-    const hue = baseHue + rand(-config.stars.colorVariation, config.stars.colorVariation);
-    return `hsl(${hue}, 100%, 90%)`;
-  }
-
+  /* CLASS: Star
+     Small static star that drifts slowly. Also can flicker twinkle & do mouse repulsion.
+  */
   class Star {
     constructor() {
       this.reset();
     }
 
+    // random initial position & velocity
     reset() {
-      // position
       this.x = rand(0, width);
       this.y = rand(0, height);
-
-      // radius
-      this.r = rand(config.stars.radiusMin, config.stars.radiusMax);
+      // radius of star is typically small
+      this.r = rand(1, 2);
 
       // velocity
-      const baseSpeed = config.stars.speedBase + Math.random() * config.stars.speedVariation;
+      const baseSpeed = STAR_SPEED_BASE + Math.random() * STAR_SPEED_VARIATION;
       const angle = Math.random() * 2 * Math.PI;
       this.vx = Math.cos(angle) * baseSpeed;
       this.vy = Math.sin(angle) * baseSpeed;
 
-      // brightness
-      this.brightness = rand(config.stars.minBrightness, config.stars.maxBrightness);
-
-      // color: subtle tinted white
-      // If you want truly colored stars, uncomment below:
-      // this.color = randomStarColor();
-      // For a subtle effect, keep them near white but vary slightly:
-      this.color = `rgba(255, 255, 255, ${this.brightness})`;
+      // brightness for star
+      this.brightness = rand(STAR_MIN_BRIGHTNESS, STAR_MAX_BRIGHTNESS);
     }
 
     update() {
-      // move
+      // basic drifting
       this.x += this.vx;
       this.y += this.vy;
 
-      // off-screen => reset
+      // if star goes out of screen, re-randomize it
       if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
         this.reset();
         return;
       }
 
-      // twinkle
-      if (Math.random() < config.stars.twinkleChance) {
+      // optional flicker / twinkle
+      if (Math.random() < STAR_TWINKLE_CHANCE) {
+        // randomly alter brightness a little
         this.brightness += rand(-0.1, 0.1);
-        if (this.brightness > config.stars.maxBrightness) {
-          this.brightness = config.stars.maxBrightness;
-        } else if (this.brightness < config.stars.minBrightness) {
-          this.brightness = config.stars.minBrightness;
+        if (this.brightness > STAR_MAX_BRIGHTNESS) {
+          this.brightness = STAR_MAX_BRIGHTNESS;
+        } else if (this.brightness < STAR_MIN_BRIGHTNESS) {
+          this.brightness = STAR_MIN_BRIGHTNESS;
         }
-        this.color = `rgba(255, 255, 255, ${this.brightness})`;
       }
 
-      // mouse repulsion
+      // mouse repulsion if user is moving
       if (isMouseMoving) {
         const dx = this.x - mouseX;
         const dy = this.y - mouseY;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < config.cosmic.cursorRepulsionRadius) {
-          const force = (config.cosmic.cursorRepulsionRadius - dist) / config.cosmic.cursorRepulsionRadius;
+        if (dist < CURSOR_REPULSION_RADIUS) {
+          // scale
+          const force = (CURSOR_REPULSION_RADIUS - dist) / CURSOR_REPULSION_RADIUS;
           const angle = Math.atan2(dy, dx);
-          this.x += Math.cos(angle) * force * config.cosmic.cursorForce * 4;
-          this.y += Math.sin(angle) * force * config.cosmic.cursorForce * 4;
+          // adjust position based on force
+          this.x += Math.cos(angle) * force * CURSOR_FORCE * 4;
+          this.y += Math.sin(angle) * force * CURSOR_FORCE * 4;
         }
       }
     }
@@ -162,49 +142,62 @@
     draw(ctx) {
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-      ctx.fillStyle = this.color;
+      ctx.fillStyle = `rgba(255,255,255,${this.brightness})`;
       ctx.fill();
     }
   }
 
+  /* CLASS: Meteor
+     A shooting star that spawns at screen edges and moves quickly across, 
+     leaving a line from current position to its previous position minus some length factor.
+  */
   class Meteor {
     constructor() {
       this.reset();
     }
 
     reset() {
+      // pick a random edge to spawn from: 0=left,1=right,2=top,3=bottom
       const edge = Math.floor(rand(0,4));
-      if (edge === 0) {
-        this.x = -50; 
+      if (edge === 0) { 
+        // left
+        this.x = -50;
         this.y = rand(0, height);
-      } else if (edge === 1) {
+      } else if (edge === 1) { 
+        // right
         this.x = width + 50;
         this.y = rand(0, height);
       } else if (edge === 2) {
+        // top
         this.x = rand(0, width);
         this.y = -50;
       } else {
+        // bottom
         this.x = rand(0, width);
         this.y = height + 50;
       }
 
+      // velocity => aim somewhat toward center or random
       const angleToCenter = Math.atan2((height/2) - this.y, (width/2) - this.x);
-      const speed = config.meteors.baseSpeed + Math.random() * 1.0;
-      this.vx = Math.cos(angleToCenter) * speed;
-      this.vy = Math.sin(angleToCenter) * speed;
+      const speed = METEOR_BASE_SPEED + Math.random() * 1.0;
+      this.vx = Math.cos(angleToCenter)*speed;
+      this.vy = Math.sin(angleToCenter)*speed;
 
-      this.length = rand(config.meteors.lengthMin, config.meteors.lengthMax);
-      this.life   = rand(config.meteors.lifeMin, config.meteors.lifeMax);
+      // length is how big the tail is
+      this.length = rand(80, 180);
+      // lifespan in frames
+      this.life = rand(80, 200);
 
-      // random bright hue
-      const hue = rand(0, 360);
-      this.color = `hsl(${hue}, 100%, 75%)`;
+      // color => random bright hue
+      this.color = `hsl(${rand(0,360)},100%,75%)`;
     }
 
     update() {
       this.x += this.vx;
       this.y += this.vy;
       this.life--;
+
+      // if out of life or offscreen => reset
       if (this.life < 0) {
         this.reset();
       }
@@ -214,10 +207,12 @@
     }
 
     draw(ctx) {
+      // line from current pos to the older pos
       const tx = this.x - this.vx * this.length;
       const ty = this.y - this.vy * this.length;
+
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth   = 2;
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
       ctx.lineTo(tx, ty);
@@ -225,35 +220,37 @@
     }
   }
 
+  /* CLASS: Comet
+     Slower moving than a meteor, but it has a bright nucleus and a trailing set of 
+     points in "this.trail" that we connect for a tail effect.
+  */
   class Comet {
     constructor() {
       this.reset();
     }
 
     reset() {
+      // also pick random edge
       const edge = Math.floor(rand(0,4));
-      if (edge === 0) {
-        this.x = -50; 
-        this.y = rand(0, height);
-      } else if (edge === 1) {
-        this.x = width+50; 
-        this.y = rand(0, height);
-      } else if (edge === 2) {
-        this.x = rand(0, width);
-        this.y = -50;
+      if (edge===0) {
+        this.x= -50; this.y= rand(0,height);
+      } else if (edge===1) {
+        this.x= width+50; this.y= rand(0,height);
+      } else if (edge===2) {
+        this.x= rand(0,width); this.y= -50;
       } else {
-        this.x = rand(0, width);
-        this.y = height+50;
+        this.x= rand(0,width); this.y= height+50;
       }
 
-      this.angle = rand(0, 2*Math.PI);
-      const speed= config.comets.baseSpeed + Math.random()*0.4;
+      this.angle= rand(0, 2*Math.PI);
+      const speed= COMET_BASE_SPEED + Math.random()*0.4;
       this.vx= Math.cos(this.angle)* speed;
       this.vy= Math.sin(this.angle)* speed;
 
       this.trail= [];
-      this.trailMaxLen= config.comets.trailLength;
+      this.trailMaxLen= COMET_TRAIL_LENGTH;
 
+      // color => typically a bluish or aqua
       const hue= rand(180, 280);
       this.color= `hsla(${hue},100%,70%,0.8)`;
       this.r= rand(3,6);
@@ -263,17 +260,20 @@
       this.x += this.vx;
       this.y += this.vy;
 
+      // store pos in trail
       this.trail.push({ x:this.x, y:this.y });
       if(this.trail.length>this.trailMaxLen) {
-        this.trail.shift();
+        this.trail.shift(); // remove oldest
       }
 
+      // if offscreen => reset
       if (this.x< -100 || this.x>width+100 || this.y< -100 || this.y>height+100) {
         this.reset();
       }
     }
 
     draw(ctx) {
+      // draw the trail
       if(this.trail.length>1) {
         ctx.beginPath();
         ctx.moveTo(this.trail[0].x, this.trail[0].y);
@@ -284,6 +284,8 @@
         ctx.lineWidth= 2;
         ctx.stroke();
       }
+
+      // nucleus
       ctx.beginPath();
       ctx.arc(this.x,this.y,this.r,0,2*Math.PI);
       ctx.fillStyle= this.color;
@@ -292,31 +294,29 @@
   }
 
   /**************************************************************************
-   * 4) STARFIELD SETUP & ANIMATION
+   * 3) STARFIELD SETUP
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     cosmicCanvas = document.getElementById('cosmicCanvas');
     if(!cosmicCanvas) {
-      console.warn("No #cosmicCanvas => starfield won't run.");
+      console.warn("No #cosmicCanvas found => starfield won't run!");
       return;
     }
     ctx = cosmicCanvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // spawn initial stars from the pool
-    for (let i=0; i<config.stars.count; i++){
-      const star = starPool.acquire();
-      star.reset();
-      cosmicEntities.push(star);
+    // spawn stars
+    for (let i=0; i<NUM_STARS; i++){
+      cosmicEntities.push(new Star());
     }
 
+    // start animation
     requestAnimationFrame(animateStarfield);
 
-    // track mouse
+    // mouse events
     window.addEventListener('mousemove', e=>{
-      mouseX = e.clientX; 
-      mouseY = e.clientY;
+      mouseX = e.clientX; mouseY = e.clientY;
       isMouseMoving= true;
       clearTimeout(mouseMoveTimeout);
       mouseMoveTimeout= setTimeout(()=>{ isMouseMoving=false; }, 1500);
@@ -331,61 +331,41 @@
   }
 
   function animateStarfield() {
+    // clear
     ctx.clearRect(0,0,width,height);
 
-    // spawn meteors
-    if(Math.random() < config.meteors.spawnRate) {
-      const m = meteorPool.acquire();
-      m.reset();
-      cosmicEntities.push(m);
+    // random chance to spawn meteor
+    if(Math.random()<METEOR_SPAWN_RATE){
+      cosmicEntities.push(new Meteor());
     }
-    // spawn comets
-    if(Math.random() < config.comets.spawnRate) {
-      const c = cometPool.acquire();
-      c.reset();
-      cosmicEntities.push(c);
+    // random chance to spawn comet
+    if(Math.random()<COMET_SPAWN_RATE){
+      cosmicEntities.push(new Comet());
     }
 
-    // update & draw all cosmic entities
+    // update & draw
     for(let i=0; i<cosmicEntities.length; i++){
-      const obj = cosmicEntities[i];
-      obj.update();
-      obj.draw(ctx);
-
-      // if an object is a star that left screen, we do starPool.release(obj)
-      // but we do that in their reset() method or if we want to remove them
-      // from cosmicEntities. For simplicity, we keep them in cosmicEntities
-      // but re-randomize them when they go off-screen.
+      cosmicEntities[i].update();
+      cosmicEntities[i].draw(ctx);
     }
 
     requestAnimationFrame(animateStarfield);
   }
 
   /**************************************************************************
-   * 5) HELPER: fetchWithErrorHandling
-   **************************************************************************/
-  async function fetchWithErrorHandling(url, errorMessage) {
-    try {
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(errorMessage);
-      return await res.json();
-    } catch(err) {
-      console.error(`${errorMessage}:`, err);
-      return null;
-    }
-  }
-
-  /**************************************************************************
-   * 6) PLANET NAVIGATION
+   * 4) PLANET NAVIGATION: Hiding the star map / showing features
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     const planetSelectEl= document.getElementById('planetSelect');
+    if(!planetSelectEl){
+      console.warn("No #planetSelect => planet nav won't work.");
+      return;
+    }
     const planets= document.querySelectorAll('.planet');
     const featureSections= document.querySelectorAll('.feature-section');
     const backButtons= document.querySelectorAll('.back-button');
 
-    if(!planetSelectEl) return;
-
+    // on planet click => hide planetSelect, show the relevant feature
     planets.forEach( planet => {
       planet.addEventListener('click', () => {
         const targetId= planet.getAttribute('data-target');
@@ -396,10 +376,13 @@
         planetSelectEl.style.display='none';
         targetSec.removeAttribute('hidden');
         targetSec.style.display='block';
+
+        // allow scroll for content
         document.body.style.overflow='auto';
       });
     });
 
+    // on back button => hide that feature, re-show planet selection
     backButtons.forEach(btn=>{
       btn.addEventListener('click', ()=>{
         featureSections.forEach(sec=>{
@@ -412,13 +395,14 @@
   });
 
   /**************************************************************************
-   * 7) SOUND TOGGLE
+   * 5) SOUND TOGGLE
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', () => {
     const bgMusic= document.getElementById('bgMusic');
     const soundToggle= document.getElementById('soundToggle');
-    if(!bgMusic || !soundToggle) return;
+    if(!bgMusic||!soundToggle) return;
 
+    // we can reveal the button if we want it hidden initially
     soundToggle.style.display='inline-block';
 
     soundToggle.addEventListener('click', ()=>{
@@ -434,12 +418,12 @@
   });
 
   /**************************************************************************
-   * 8) THEME TOGGLE
+   * 6) THEME TOGGLE (DARK vs. LIGHT)
    **************************************************************************/
   document.addEventListener('DOMContentLoaded', ()=>{
     const themeSelect= document.getElementById('theme-select');
     if(!themeSelect)return;
-
+    // default to dark
     document.body.classList.remove('light-theme');
     document.body.classList.add('dark-theme');
     themeSelect.value='dark';
@@ -456,60 +440,61 @@
   });
 
   /**************************************************************************
-   * 9) BZTRACKER: SEARCH, GRAPH, MARGINS, PROFIT, VARIATIONS
+   * 7) BZTRACKER: SEARCH, GRAPH, MARGINS, PROFIT, VARIATIONS
    **************************************************************************/
-  let chart = null; // Chart.js instance
-  let currentItem = ''; // track current item for the chart
-  let graphHistoryData = [];
-
   document.addEventListener('DOMContentLoaded', ()=>{
+    /* 
+      We'll gather references to the form fields, toggles, etc. 
+      Then define fetch calls to /search, /graph-data, /top-margins, etc. 
+      Also define chart update logic with advanced toggles & forecast.
+    */
+
     // references
     const searchInput     = document.getElementById('item-search');
     const suggestionsDiv  = document.getElementById('suggestions');
     const resultDiv       = document.getElementById('result');
     const priceGraphCtx   = document.getElementById('priceGraph')?.getContext('2d');
 
-    const forecastAccuracyDiv= document.getElementById('forecast-accuracy');
-    const recommendedDiv     = document.getElementById('recommended-prices');
-    const targetSellInput    = document.getElementById('target-sell-price');
+    const topMarginsDiv   = document.getElementById('top-margins');
+    const profitabilityRes= document.getElementById('profitability-result');
+    const topVariationsDiv= document.getElementById('top-variations');
 
+    // toggle references
     const toggleLinear       = document.getElementById('toggle-linear');
     const toggleExponential  = document.getElementById('toggle-exponential');
     const toggleMA           = document.getElementById('toggle-moving-average');
     const toggleForecast     = document.getElementById('toggle-forecast');
     const toggleHoltWinters  = document.getElementById('toggle-holt-winters');
 
-    const timeRangeBtns      = document.querySelectorAll('.time-range-btn');
-    const downloadBtn        = document.getElementById('downloadGraph');
+    // time range & download
+    const timeRangeBtns= document.querySelectorAll('.time-range-btn');
+    const downloadBtn  = document.getElementById('downloadGraph');
 
-    const fullscreenBtn      = document.getElementById('fullscreenBtn');
-    const umbraSection       = document.getElementById('planet-umbra-feature');
+    // chart info
+    const forecastAccuracyDiv= document.getElementById('forecast-accuracy');
+    const recommendedDiv     = document.getElementById('recommended-prices');
+    const targetSellInput    = document.getElementById('target-sell-price');
 
     // top margins
-    const topMarginsDiv      = document.getElementById('top-margins');
-    const refreshTopMargins  = document.getElementById('refresh-top-margins');
+    const refreshTopMargins = document.getElementById('refresh-top-margins');
 
     // profitability
-    const profitabilityRes   = document.getElementById('profitability-result');
-    const coinsInput         = document.getElementById('coins');
-    const difficultyInput    = document.getElementById('difficulty');
-    const calcProfitButton   = document.getElementById('calculate-profit');
+    const coinsInput       = document.getElementById('coins');
+    const difficultyInput  = document.getElementById('difficulty');
+    const calcProfitButton = document.getElementById('calculate-profit');
 
     // variations
-    const topVariationsDiv   = document.getElementById('top-variations');
-    const refreshTopVarBtn   = document.getElementById('refresh-top-variations');
-    const variationTimeSel   = document.getElementById('variation-time-range');
+    const refreshTopVarBtn = document.getElementById('refresh-top-variations');
+    const variationTimeSel = document.getElementById('variation-time-range');
 
-    /**********************************************************************
-     * Helper: Show/Hide Loader
-     **********************************************************************/
+    /* Helper function: show/hide loader */
     function showLoader(show) {
       const loader= document.getElementById('loader');
       if(loader) loader.style.display= show?'block':'none';
     }
 
     /**********************************************************************
-     * 9.1) AUTOCOMPLETE
+     * 7.1) AUTOCOMPLETE
      **********************************************************************/
     if(searchInput){
       searchInput.addEventListener('input', ()=>{
@@ -521,27 +506,28 @@
         fetchSuggestions(query);
       });
     }
-
     async function fetchSuggestions(query){
-      const items = await fetchWithErrorHandling(
-        `/autocomplete?query=${encodeURIComponent(query)}`,
-        "Failed to fetch autocomplete"
-      );
-      if(!items) return;
-      suggestionsDiv.innerHTML='';
-      items.forEach(item=>{
-        const div= document.createElement('div');
-        div.textContent= item;
-        div.addEventListener('click', ()=>{
-          searchInput.value= item;
-          suggestionsDiv.innerHTML='';
+      try{
+        const res= await fetch(`/autocomplete?query=${encodeURIComponent(query)}`);
+        if(!res.ok) throw new Error("autocomplete fetch fail");
+        const items= await res.json();
+        suggestionsDiv.innerHTML='';
+        items.forEach(item=>{
+          const div= document.createElement('div');
+          div.textContent= item;
+          div.addEventListener('click', ()=>{
+            searchInput.value= item;
+            suggestionsDiv.innerHTML='';
+          });
+          suggestionsDiv.appendChild(div);
         });
-        suggestionsDiv.appendChild(div);
-      });
+      } catch(err){
+        console.error("Autocomplete error:",err);
+      }
     }
 
     /**********************************************************************
-     * 9.2) SEARCH => fetch item details + graph
+     * 7.2) SEARCH => fetch item details + graph
      **********************************************************************/
     const searchForm= document.getElementById('search-form');
     if(searchForm){
@@ -550,58 +536,55 @@
         const itemName= searchInput.value.trim();
         if(!itemName)return;
         currentItem= itemName;
+        try{
+          showLoader(true);
+          const res= await fetch(`/search?item=${encodeURIComponent(itemName)}`);
+          if(!res.ok)throw new Error("search fetch fail");
+          const data= await res.json();
+          const {
+            item_id,
+            buy_price,
+            sell_price,
+            margin,
+            demand,
+            supply
+          }= data;
 
-        showLoader(true);
-        const data = await fetchWithErrorHandling(
-          `/search?item=${encodeURIComponent(itemName)}`,
-          "Failed to fetch item details"
-        );
-        showLoader(false);
-
-        if(!data) {
+          resultDiv.innerHTML= `
+            <p><strong>Item:</strong> ${item_id}</p>
+            <p><strong>Buy Price:</strong> ${buy_price??'N/A'}</p>
+            <p><strong>Sell Price:</strong> ${sell_price??'N/A'}</p>
+            <p><strong>Margin:</strong> ${margin??'N/A'}</p>
+            <p><strong>Demand:</strong> ${demand??'N/A'}</p>
+            <p><strong>Supply:</strong> ${supply??'N/A'}</p>
+          `;
+          fetchGraphData(itemName,'all');
+        } catch(err){
+          console.error("Item details error:",err);
           resultDiv.innerHTML='<p>Error loading item details.</p>';
-          return;
+        } finally{
+          showLoader(false);
         }
-
-        const {
-          item_id,
-          buy_price,
-          sell_price,
-          margin,
-          demand,
-          supply
-        }= data;
-
-        resultDiv.innerHTML= `
-          <p><strong>Item:</strong> ${item_id}</p>
-          <p><strong>Buy Price:</strong> ${buy_price??'N/A'}</p>
-          <p><strong>Sell Price:</strong> ${sell_price??'N/A'}</p>
-          <p><strong>Margin:</strong> ${margin??'N/A'}</p>
-          <p><strong>Demand:</strong> ${demand??'N/A'}</p>
-          <p><strong>Supply:</strong> ${supply??'N/A'}</p>
-        `;
-
-        fetchGraphData(itemName,'all');
       });
     }
 
     /**********************************************************************
-     * 9.3) FETCH GRAPH DATA
+     * 7.3) GRAPH DATA
      **********************************************************************/
     async function fetchGraphData(itemName, timeRange='all') {
-      showLoader(true);
-      const data = await fetchWithErrorHandling(
-        `/graph-data?item=${encodeURIComponent(itemName)}&range=${encodeURIComponent(timeRange)}`,
-        "Failed to fetch graph data"
-      );
-      showLoader(false);
-
-      if(!data) {
+      try{
+        showLoader(true);
+        const url= `/graph-data?item=${encodeURIComponent(itemName)}&range=${encodeURIComponent(timeRange)}`;
+        const res= await fetch(url);
+        if(!res.ok)throw new Error("graph-data fetch fail");
+        graphHistoryData= await res.json();
+        updateChart();
+      } catch(err){
+        console.error("Graph data error:",err);
         resultDiv.innerHTML='<p>Error loading graph data. Please try again later.</p>';
-        return;
+      } finally{
+        showLoader(false);
       }
-      graphHistoryData = data;
-      updateChart();
     }
 
     /**********************************************************************
@@ -1062,19 +1045,4 @@
     });
   }); // end of big DOMContentLoaded
 
-      // Additionally, if you want to track fullscreen change events:
-      document.addEventListener('fullscreenchange', ()=>{
-        // We can apply a .fullscreen-mode class if we want the CSS to hide controls
-        if(document.fullscreenElement === umbraSection){
-          // In fullscreen
-          umbraSection.classList.add('fullscreen-mode');
-          document.body.style.overflow='hidden';
-        } else {
-          // Exited fullscreen
-          umbraSection.classList.remove('fullscreen-mode');
-          document.body.style.overflow='auto';
-        }
-      });
-    }
-  }); // end DOMContentLoaded
-})();
+})(); // end IIFE

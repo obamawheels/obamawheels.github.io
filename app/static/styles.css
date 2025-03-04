@@ -1,7 +1,7 @@
 /*************************************************************************************
- *                DESTINY-STYLE BZTRACKER — NORMAL LAYOUT + FULLSCREEN + REALISM
- *                SUPER HYPER REALISTIC VERSION
- *************************************************************************************/
+ *                 DESTINY-STYLE BZTRACKER — SUPER-EXPANDED styles.css
+ *                 With Additional Animations, Planet Rotations, Etc.
+ ************************************************************************************/
 
 /* RESET / BASE */
 * {
@@ -12,13 +12,13 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden; /* We'll handle scroll inside feature sections if needed */
   font-family: "Roboto", sans-serif;
   background: #000;
   color: #fff;
 }
 
-/* THEME TOGGLES */
+/* THEME TOGGLES (Dark vs. Light) */
 body.dark-theme {
   background: #000;
   color: #fff;
@@ -34,48 +34,21 @@ body.light-theme {
 }
 
 /*************************************************************************************
- * 0) OPTIONAL COSMIC BACKGROUND LAYER (BEHIND STARFIELD)
- *************************************************************************************/
-/* Use a high-resolution cosmic image for an extra realistic background.
-   Ensure you include this div in your HTML before the starfield canvas. */
-#cosmic-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  background: url("path/to/cosmic-bg.jpg") center/cover no-repeat;
-  opacity: 0.7;
-}
-#cosmic-background::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
-  animation: cosmicPulse 12s ease-in-out infinite;
-}
-@keyframes cosmicPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.5; }
-}
-
-/*************************************************************************************
  * 1) CANVAS STARFIELD
  *************************************************************************************/
-#cosmicCanvas {
+ #cosmicCanvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0; /* Above cosmic-bg */
-  background: #000;
-  filter: brightness(120%) contrast(130%) drop-shadow(0 0 2px #fff);
+  z-index: 0; /* ✅ Fix: Bring to foreground */
+  background: #000; /* Keep if you want the canvas to handle the background */
 }
+
 body.dark-theme {
-  background: transparent;
+  background: transparent; /* ✅ Fix: Stop covering the canvas */
+
 }
 
 /*************************************************************************************
@@ -89,47 +62,33 @@ body.dark-theme {
   max-width: 1400px;
   height: 80%;
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  pointer-events: none; /* container not clickable, but each .planet is */
 }
 
-/* Each planet is given a 3D perspective for extra realism */
+/* The .planet orbs */
 .planet {
   position: absolute;
   width: 140px;
   height: 140px;
   pointer-events: auto;
   cursor: pointer;
-  transform: translate(-50%, -50%) perspective(500px);
-  transition: transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease,
+    box-shadow 0.4s ease;
+  /* We'll add an animation for rotation, to give them a slow spin */
   animation: slowSpin 20s linear infinite;
 }
-@keyframes slowSpin {
-  0% { transform: translate(-50%, -50%) rotate(0deg) perspective(500px); }
-  100% { transform: translate(-50%, -50%) rotate(360deg) perspective(500px); }
-}
 
-/* Planet Ring: A rotating, semi-transparent ring for a 3D orbital effect */
-.planet-ring {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 200px;
-  height: 200px;
-  transform: translate(-50%, -50%);
-  border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-  animation: ringRotate 40s linear infinite;
-}
-@keyframes ringRotate {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
+/* Planet slow rotation, you can define or randomize the direction. */
+@keyframes slowSpin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg);   }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Planet Orb: The actual planet image with a subtle halo glow */
+/* .planet-image is the spherical background */
 .planet-image {
-  position: absolute;
-  top: 50%; left: 50%;
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -137,21 +96,9 @@ body.dark-theme {
   background-position: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 0 25px rgba(0,0,0,0.6);
-  transform: translate(-50%, -50%);
-}
-.planet-image::before {
-  content: "";
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 160%; height: 160%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(rgba(255,255,255,0.15), transparent 70%);
-  pointer-events: none;
-  z-index: -1;
 }
 
-/* Planet Label with outer glow and uppercase sci-fi style */
+/* Planet name label */
 .planet-name {
   position: absolute;
   bottom: -1.7rem;
@@ -160,29 +107,43 @@ body.dark-theme {
   font-size: 1rem;
   font-weight: bold;
   letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #fff;
-  text-shadow: 0 0 8px rgba(0,0,0,0.8), 0 0 3px rgba(255,255,255,0.5);
-  pointer-events: none;
+  text-shadow: 0 0 8px rgba(0,0,0,0.8);
 }
 
-/* Hover effect: scale up and intensify glow */
+/* Hover effect: subtle enlarge + glow */
 .planet:hover .planet-image {
-  transform: translate(-50%, -50%) scale(1.08);
+  transform: scale(1.08);
   box-shadow: 0 0 35px rgba(255,255,255,0.9);
 }
 .planet:hover {
-  transform: translate(-50%, -50%) scale(1.08) rotate(15deg) perspective(500px);
+  transform: translate(-50%, -50%) scale(1.08) rotate(15deg);
 }
 
-/* Example positions for five planets */
-.center-planet { top: 50%; left: 50%; }
-.top-left      { top: 20%; left: 20%; }
-.top-right     { top: 20%; right: 20%; }
-.bottom-left   { bottom: 20%; left: 20%; }
-.bottom-right  { bottom: 20%; right: 20%; }
+/* Positions: center, corners */
+.center-planet {
+  top: 50%;
+  left: 50%;
+}
+.top-left {
+  top: 20%;
+  left: 20%;
+}
+.top-right {
+  top: 20%;
+  right: 20%;
+}
+.bottom-left {
+  bottom: 20%;
+  left: 20%;
+}
+.bottom-right {
+  bottom: 20%;
+  right: 20%;
+}
 
-/* Placeholder backgrounds for planets */
+/* Distinct planet backgrounds & color vibes 
+   You can replace these placeholder backgrounds with real textures
+*/
 .planet-umbra .planet-image {
   background-image: url('https://placehold.co/300x300/4D2C67/FFFFFF?text=Umbra');
 }
@@ -200,10 +161,10 @@ body.dark-theme {
 }
 
 /*************************************************************************************
- * 3) FEATURE SECTIONS
+ * 3) FEATURE SECTIONS (Hidden by Default)
  *************************************************************************************/
 .feature-section {
-  display: none;
+  display: none; /* hidden initially */
   position: absolute;
   top: 50%;
   left: 50%;
@@ -232,15 +193,20 @@ body.dark-theme {
   margin-bottom: 1rem;
   font-size: 2rem;
 }
+
+/* Distinct border colors for each planet’s section */
 .umbra-theme    { border: 2px solid #7E57C2; }
 .pyra-theme     { border: 2px solid #800000; }
 .astris-theme   { border: 2px solid #5A667F; }
 .borealis-theme { border: 2px solid #000080; }
 .eclipse-theme  { border: 2px solid #999999; }
 
+/* The content in each section */
 .feature-content {
   margin-bottom: 2rem;
 }
+
+/* Back button with cinematic hover */
 .back-button {
   display: inline-block;
   margin: 1rem 0;
@@ -261,8 +227,71 @@ body.dark-theme {
 }
 
 /*************************************************************************************
- * 4) PRICE GRAPH (Default smaller version)
+ * 4) BZTRACKER UI SECTIONS (Search, Graph, etc.)
  *************************************************************************************/
+/* Loader/spinner */
+#loader {
+  display: none;
+  margin: 10px 0;
+  text-align: center;
+}
+.spinner {
+  border: 6px solid #666;
+  border-top: 6px solid #fff;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Search form */
+#search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#search-form input {
+  padding: 12px;
+  border: 1px solid #444;
+  background: #222;
+  border-radius: 4px;
+  color: #fff;
+}
+#search-form button {
+  align-self: flex-start;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+#search-form button:hover {
+  background: rgba(255,255,255,0.2);
+}
+#suggestions {
+  position: relative;
+}
+#suggestions div {
+  background: #444;
+  padding: 6px;
+  border: 1px solid #666;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background 0.3s;
+}
+#suggestions div:hover {
+  background: #555;
+}
+#result p {
+  margin: 4px 0;
+}
+
+/* Graph layout */
 .graph-layout {
   display: flex;
   flex-wrap: wrap;
@@ -272,11 +301,10 @@ body.dark-theme {
 #chart-area {
   flex: 1;
   min-width: 400px;
-  margin-bottom: 16px;
 }
 #priceGraph {
   width: 100%;
-  height: 300px;
+  height: 320px;
   background: #111;
   border-radius: 6px;
   margin-bottom: 8px;
@@ -365,71 +393,7 @@ body.dark-theme {
   color: #fff;
 }
 
-/*************************************************************************************
- * 5) BZTRACKER UI (Loader, Search, etc.)
- *************************************************************************************/
-#loader {
-  display: none;
-  margin: 10px 0;
-  text-align: center;
-}
-.spinner {
-  border: 6px solid #666;
-  border-top: 6px solid #fff;
-  border-radius: 50%;
-  width: 35px;
-  height: 35px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-@keyframes spin { 100% { transform: rotate(360deg); } }
-#search-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-#search-form input {
-  padding: 12px;
-  border: 1px solid #444;
-  background: #222;
-  border-radius: 4px;
-  color: #fff;
-}
-#search-form button {
-  align-self: flex-start;
-  border: 2px solid #fff;
-  background: transparent;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-#search-form button:hover {
-  background: rgba(255,255,255,0.2);
-}
-#suggestions {
-  position: relative;
-}
-#suggestions div {
-  background: #444;
-  padding: 6px;
-  border: 1px solid #666;
-  cursor: pointer;
-  margin-top: 2px;
-  transition: background 0.3s;
-}
-#suggestions div:hover {
-  background: #555;
-}
-#result p {
-  margin: 4px 0;
-}
-
-/*************************************************************************************
- * 6) ITEM CARDS (Top Margins, Profitability, Variations)
- *************************************************************************************/
+/* Item cards (Top Margins, Profitability, Variations) */
 .item-card {
   background: #222;
   margin-top: 10px;
@@ -451,84 +415,7 @@ body.dark-theme {
 }
 
 /*************************************************************************************
- * 7) FULLSCREEN MODE — Umbra Feature (FIXED VERSION)
- *************************************************************************************/
-#planet-umbra-feature.fullscreen-mode {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 10000;
-  background: rgba(0,0,0,0.95);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  border: none;
-  border-radius: 0;
-  padding: 20px;
-}
-#planet-umbra-feature.fullscreen-mode .graph-layout {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-  gap: 30px;
-  padding: 15px;
-}
-#planet-umbra-feature.fullscreen-mode #chart-area {
-  flex: 1 1 70%;
-  min-width: 600px;
-  height: 80vh;
-  background: #111;
-  border-radius: 8px;
-  padding: 20px;
-  position: relative;
-}
-#planet-umbra-feature.fullscreen-mode #priceGraph {
-  width: 100% !important;
-  height: 100% !important;
-}
-#planet-umbra-feature.fullscreen-mode #graph-controls {
-  flex: 0 0 300px;
-  background: rgba(20,20,20,0.9);
-  border-radius: 8px;
-  padding: 25px;
-  max-height: 80vh;
-  overflow-y: auto;
-  backdrop-filter: blur(5px);
-}
-@media (max-width: 768px) {
-  #planet-umbra-feature.fullscreen-mode .graph-layout {
-    flex-direction: column;
-    height: auto;
-    padding: 10px;
-  }
-  #planet-umbra-feature.fullscreen-mode #chart-area {
-    width: 100% !important;
-    height: 60vh !important;
-    min-width: unset;
-    flex: unset;
-  }
-  #planet-umbra-feature.fullscreen-mode #graph-controls {
-    width: 100%;
-    flex: unset;
-    max-height: 40vh;
-  }
-}
-canvas#priceGraph {
-  transition: opacity 0.3s ease;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-/*************************************************************************************
- * 8) SOUND BUTTON
+ * 5) SOUND BUTTON
  *************************************************************************************/
 .sound-btn {
   position: fixed;
@@ -549,7 +436,7 @@ canvas#priceGraph {
 }
 
 /*************************************************************************************
- * 9) RESPONSIVE ADJUSTMENTS
+ * 6) RESPONSIVE ADJUSTMENTS
  *************************************************************************************/
 @media (max-width: 768px) {
   .planet {
@@ -558,8 +445,12 @@ canvas#priceGraph {
     animation: slowSpinSmall 20s linear infinite;
   }
   @keyframes slowSpinSmall {
-    0%   { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100%{transform: translate(-50%, -50%) rotate(360deg);}
+  }
+  .feature-section {
+    width: 90%;
+    max-width: 600px;
   }
   #priceGraph {
     height: 220px;
