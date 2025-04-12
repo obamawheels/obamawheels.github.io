@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Interactive Graph for {{ product_id }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    a {
+      text-decoration: none;
+      color: #0066cc;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Interactive Data for {{ product_id }}</h1>
+  <!-- The Plotly interactive graph will be inserted here -->
+  {{ price_div | safe }}
+  {{ sell_volume_div | safe }}
+  {{ buy_volume_div | safe }}
+    <br>
+  <a href="{{ url_for('index') }}">Back to Product List</a> |
+  <a href="{{ url_for('index') }}">Go to Dashboard</a>
+</body>
+</html>

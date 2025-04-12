@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hypixel Bazaar - Product Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #1c1c24;
+      color: #f1f1f1;
+    }
+    h1 {
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    thead {
+      background: #262631;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      border: 1px solid #2c2c38;
+    }
+    tr:nth-child(even) {
+      background: #2a2a34;
+    }
+    a {
+      color: #66ccff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .link-cell a {
+      color: #ebde86;
+      font-weight: bold;
+    }
+    /* Style for the prediction results */
+    .prediction-result {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.9em;
+      color: #ebde86;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hypixel Bazaar - Product Dashboard</h1>
+  <p>
+    <a href="{{ url_for('top_variations') }}">View Top Variations</a>
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Product ID</th>
+        <th>Sell Price</th>
+        <th>Buy Price</th>
+        <th>Sell Volume</th>
+        <th>Buy Volume</th>
+        <th>Sell Orders</th>
+        <th>Buy Orders</th>
+        <th>Sell Moving Week</th>
+        <th>Buy Moving Week</th>
+        <th>Snapshot Time</th>
+        <th>Prediction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in snapshots %}
+      <tr>
+        <td class="link-cell">
+          <a href="{{ url_for('plot_product', product_id=row.product_id) }}">{{ row.product_id }}</a>
+        </td>
+        <td>{{ row.sellPrice }}</td>
+        <td>{{ row.buyPrice }}</td>
+        <td>{{ row.sellVolume }}</td>
+        <td>{{ row.buyVolume }}</td>
+        <td>{{ row.sellOrders }}</td>
+        <td>{{ row.buyOrders }}</td>
+        <td>{{ row.sellMovingWeek }}</td>
+        <td>{{ row.buyMovingWeek }}</td>
+        <td>{{ row.snapshot_time }}</td>
+        <td>
+          <button class="predict-btn" data-product="{{ row.product_id }}">
+            Predict
+          </button>
+          <span class="prediction-result"></span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- JavaScript to trigger prediction requests -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const buttons = document.querySelectorAll(".predict-btn");
+      buttons.forEach(function(button) {
+        button.addEventListener("click", function() {
+          const productId = this.getAttribute("data-product");
+          const resultSpan = this.nextElementSibling;
+          resultSpan.innerHTML = "Predicting..."; // display interim message
+
+          // Fetch prediction from the backend endpoint
+          fetch(`/predict/${productId}`)
+            .then(response => response.json())
+            .then(data => {
+              // Format predicted sell price and confidence score
+              const prediction = parseFloat(data.predicted_sell_price).toFixed(2);
+              const confidence = parseFloat(data.confidence).toFixed(2);
+              resultSpan.innerHTML = `Price: ${prediction}, Confidence: ${confidence}%`;
+            })
+            .catch(err => {
+              console.error(err);
+              resultSpan.innerHTML = "Error fetching prediction";
+            });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
