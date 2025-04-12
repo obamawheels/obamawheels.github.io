@@ -1,7 +1,0 @@
-flask
-requests
-matplotlib
-numpy
-cachetools
-gunicorn
-influxdb-client
