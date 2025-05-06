@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Product Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">
+    <i class="fa fa-gauge-high me-2"></i>Product Dashboard
+  </h2>
+  <a class="btn btn-outline-primary" href="{{ url_for('top_variations') }}">
+    <i class="fa fa-arrow-trend-up"></i> View Top Variations
+  </a>
+</div>
+
+<div class="glass p-3 shadow-sm">
+  <table id="products" class="table table-striped table-hover w-100">
+    <thead class="table-dark text-center align-middle">
+      <tr>
+        <th>ID</th>
+        <th>Sell</th>
+        <th>Buy</th>
+        <th>S Vol</th>
+        <th>B Vol</th>
+        <th>S Ord</th>
+        <th>B Ord</th>
+        <th>S Wk</th>
+        <th>B Wk</th>
+        <th>Time</th>
+        <th>AI Peak</th>
+      </tr>
+    </thead>
+    <tbody class="align-middle text-center">
+      {% for r in snapshots %}
+      <tr data-id="{{ r.product_id }}">
+        <td>
+          <a href="{{ url_for('plot_product',product_id=r.product_id) }}"
+             class="text-decoration-none">
+            {{ r.product_id }}
+          </a>
+        </td>
+        <td>{{ r.sellPrice|round(2) }}</td>
+        <td>{{ r.buyPrice|round(2) }}</td>
+        <td>{{ r.sellVolume }}</td>
+        <td>{{ r.buyVolume }}</td>
+        <td>{{ r.sellOrders }}</td>
+        <td>{{ r.buyOrders }}</td>
+        <td>{{ r.sellMovingWeek }}</td>
+        <td>{{ r.buyMovingWeek }}</td>
+        <td>{{ r.snapshot_time }}</td>
+        <td class="prediction-cell">
+          <span class="spinner-border spinner-border-sm text-secondary d-none"></span>
+          <span class="badge rounded-pill bg-secondary">…</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Initialize DataTable with export buttons & sticky header
+  const tbl = new DataTable('#products', {
+    order: [[9, 'desc']],
+    pageLength: 25,
+    dom: 'Bfrtip',
+    buttons: ['copy', 'csv'],
+    headerCallback: thead => thead.classList.add('sticky-top','bg-dark','text-white')
+  });
+
+  // Fetch AI peak predictions per row
+  function refreshPeaks() {
+    $('#products tbody tr').each(function() {
+      const row   = $(this);
+      const id    = row.data('id');
+      const spin  = row.find('.spinner-border');
+      const badge = row.find('.badge');
+
+      spin.removeClass('d-none');
+      badge.addClass('d-none');
+
+      fetch(`/predict/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          spin.addClass('d-none');
+          badge.removeClass('d-none');
+
+          if (data.predicted_peak_price != null) {
+            const sell  = parseFloat(row.children().eq(1).text());
+            const peak  = parseFloat(data.predicted_peak_price).toFixed(2);
+            const delta = (peak - sell).toFixed(2);
+
+            badge.text(`${peak} (${delta})`);
+            badge
+              .removeClass('bg-secondary badge-up badge-down')
+              .addClass(delta >= 0 ? 'badge-up' : 'badge-down');
+          } else {
+            badge.text('n/a')
+                 .removeClass('badge-up badge-down')
+                 .addClass('bg-secondary');
+          }
+        })
+        .catch(() => {
+          spin.addClass('d-none');
+          badge.text('err')
+               .removeClass('badge-up badge-down')
+               .addClass('bg-secondary');
+        });
+    });
+  }
+
+  // Initial load + periodic updates
+  refreshPeaks();
+  setInterval(refreshPeaks, 20000);
+  setInterval(() => location.reload(), 60000);
+</script>
+{% endblock %}

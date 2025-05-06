@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}AI Opportunities{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">AI‑Selected Opportunities</h2>
+
+<!-- ── CONTROLS ───────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <label class="form-label fw-semibold">Min Confidence (%)</label>
+    <input id="confSlider" type="range" class="form-range" min="0" max="100" step="5" value="0">
+    <div class="small text-muted"><span id="confVal">0</span>%+</div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <label class="form-label fw-semibold">Min Upside (%)</label>
+    <input id="upSlider" type="range" class="form-range" min="0" max="100" step="1" value="0">
+    <div class="small text-muted"><span id="upVal">0</span>%+</div>
+  </div>
+  <div class="col-12 col-lg-6 d-flex align-items-end justify-content-lg-end">
+    <button id="resetBtn" class="btn btn-outline-secondary me-2"><i class="fa fa-rotate"></i> Reset</button>
+    <button id="refreshBtn" class="btn btn-outline-primary"><i class="fa fa-sync"></i> Refresh Data</button>
+  </div>
+</div>
+
+<!-- ── TABLE ──────────────────────────────────────────────── -->
+<table id="ideas" class="table table-striped table-hover w-100">
+  <thead class="table-dark text-center align-middle">
+    <tr>
+      <th>ID</th>
+      <th title="Current sell price">Sell</th>
+      <th title="Predicted fair price">Peak</th>
+      <th title="(Peak‑Sell)/Sell">Upside %</th>
+      <th>Conf&nbsp;%</th>
+      <th>Score</th>
+      <th>Buy</th>
+    </tr>
+  </thead>
+  <tbody class="align-middle text-center">
+    {% for inv in investments %}
+      {% set upside = ((inv.real_price - inv.current_sell_price) / inv.current_sell_price * 100) | round(2) %}
+      <tr>
+        <td><a href="{{ url_for('plot_product',product_id=inv.product_id) }}">{{ inv.product_id }}</a></td>
+        <td>{{ inv.current_sell_price }}</td>
+        <td>{{ inv.real_price }}</td>
+        <td class="fw-semibold {% if upside>0 %}text-success{% else %}text-danger{% endif %}">
+          {{ upside }} %
+        </td>
+        <td>{{ inv.confidence }}</td>
+        <td>{{ inv.investment_score }}</td>
+        <td>
+          <a href="{{ url_for('buy_investment',product_id=inv.product_id) }}"
+             class="btn btn-sm btn-success">
+            Buy
+          </a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot class="table-light fw-semibold text-center">
+    <tr>
+      <td colspan="7" id="summaryCell" class="text-muted"></td>
+    </tr>
+  </tfoot>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<!-- DataTables Buttons -->
+<script src="https://cdn.datatables.net/buttons/2.4.3/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.3/js/buttons.html5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+(() => {
+  // initialise DataTable with export buttons
+  const tbl = new DataTable('#ideas',{
+    order: [[5,'desc']],
+    pageLength: 25,
+    dom: 'Bfrtip',
+    buttons: ['copy','csv'],
+    headerCallback:(thead)=>thead.classList.add('sticky-top','bg-dark','text-white')
+  });
+
+  const summary = () => {
+    const data = tbl.rows({filter:'applied'}).data();
+    const count = data.length;
+    const avgUpside = data.reduce((s,r)=>s+parseFloat($(r[3]).text()),0)/Math.max(count,1);
+    document.getElementById('summaryCell').innerHTML =
+      `Showing <b>${count}</b> opportunities — average upside <b>${avgUpside.toFixed(2)} %</b>`;
+  };
+  tbl.on('draw', summary); summary();
+
+  // sliders
+  const conf = document.getElementById('confSlider');
+  const up   = document.getElementById('upSlider');
+  const confVal=document.getElementById('confVal');
+  const upVal=document.getElementById('upVal');
+
+  function applyFilters(){
+    const c = parseFloat(conf.value), u = parseFloat(up.value);
+    confVal.textContent=c; upVal.textContent=u;
+    tbl.column(4).search(c ? `^([${c}-9][0-9]|100)$` : '', true,false); // confidence
+    tbl.draw();
+    // custom column filter for upside (index 3)
+    tbl.rows().every(function(){
+      const val = parseFloat($(this.node()).find('td:eq(3)').text());
+      $(this.node()).toggle(val >= u);
+    });
+    summary();
+  }
+  conf.addEventListener('input', applyFilters);
+  up.addEventListener('input', applyFilters);
+
+  // buttons
+  document.getElementById('resetBtn').onclick = () => {
+    conf.value = up.value = 0; applyFilters();
+  };
+  document.getElementById('refreshBtn').onclick = () => location.reload();
+})();
+</script>
+{% endblock %}

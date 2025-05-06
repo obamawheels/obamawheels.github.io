@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ product_id }} Charts{% endblock %}
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h2>{{ product_id }}</h2>
+<p class="text-muted">{{ peak_info }}</p>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Price</div>
+      <div class="card-body">{{ price_div|safe }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-3">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Sell Volume</div>
+      <div class="card-body">{{ sell_volume_div|safe }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-3">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Buy Volume</div>
+      <div class="card-body">{{ buy_volume_div|safe }}</div>
+    </div>
+  </div>
+</div>
+<a class="btn btn-link mt-3" href="{{ url_for('index') }}"><i class="fa fa-arrow-left"></i> Back</a>
+{% endblock %}
