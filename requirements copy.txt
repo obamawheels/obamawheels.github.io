@@ -1,5 +1,0 @@
-scikit-learn
-plotly
-gunicorn
-requests
-Flask

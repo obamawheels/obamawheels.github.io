@@ -1,128 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Hypixel Bazaar - Product Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #1c1c24;
-      color: #f1f1f1;
-    }
-    h1 {
-      color: #fff;
-      margin-bottom: 1rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 2rem;
-    }
-    thead {
-      background: #262631;
-    }
-    th, td {
-      padding: 0.75rem 1rem;
-      text-align: center;
-      border: 1px solid #2c2c38;
-    }
-    tr:nth-child(even) {
-      background: #2a2a34;
-    }
-    a {
-      color: #66ccff;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .link-cell a {
-      color: #ebde86;
-      font-weight: bold;
-    }
-    /* Style for the prediction results */
-    .prediction-result {
-      display: block;
-      margin-top: 5px;
-      font-size: 0.9em;
-      color: #ebde86;
-    }
-  </style>
-</head>
-<body>
-  <h1>Hypixel Bazaar - Product Dashboard</h1>
-  <p>
-    <a href="{{ url_for('top_variations') }}">View Top Variations</a>
-  </p>
-  <table>
-    <thead>
+{% extends "base.html" %}
+{% block title %}Product Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">
+    <i class="fa fa-gauge-high me-2"></i>Product Dashboard
+  </h2>
+  <a class="btn btn-outline-primary" href="{{ url_for('top_variations') }}">
+    <i class="fa fa-arrow-trend-up"></i> View Top Variations
+  </a>
+</div>
+
+<div class="glass p-3 shadow-sm">
+  <table id="products" class="table table-striped table-hover w-100">
+    <thead class="table-dark text-center align-middle">
       <tr>
-        <th>Product ID</th>
-        <th>Sell Price</th>
-        <th>Buy Price</th>
-        <th>Sell Volume</th>
-        <th>Buy Volume</th>
-        <th>Sell Orders</th>
-        <th>Buy Orders</th>
-        <th>Sell Moving Week</th>
-        <th>Buy Moving Week</th>
-        <th>Snapshot Time</th>
-        <th>Prediction</th>
+        <th>ID</th>
+        <th>Sell</th>
+        <th>Buy</th>
+        <th>S Vol</th>
+        <th>B Vol</th>
+        <th>S Ord</th>
+        <th>B Ord</th>
+        <th>S Wk</th>
+        <th>B Wk</th>
+        <th>Time</th>
+        <th>AI Peak</th>
       </tr>
     </thead>
-    <tbody>
-      {% for row in snapshots %}
-      <tr>
-        <td class="link-cell">
-          <a href="{{ url_for('plot_product', product_id=row.product_id) }}">{{ row.product_id }}</a>
-        </td>
-        <td>{{ row.sellPrice }}</td>
-        <td>{{ row.buyPrice }}</td>
-        <td>{{ row.sellVolume }}</td>
-        <td>{{ row.buyVolume }}</td>
-        <td>{{ row.sellOrders }}</td>
-        <td>{{ row.buyOrders }}</td>
-        <td>{{ row.sellMovingWeek }}</td>
-        <td>{{ row.buyMovingWeek }}</td>
-        <td>{{ row.snapshot_time }}</td>
+    <tbody class="align-middle text-center">
+      {% for r in snapshots %}
+      <tr data-id="{{ r.product_id }}">
         <td>
-          <button class="predict-btn" data-product="{{ row.product_id }}">
-            Predict
-          </button>
-          <span class="prediction-result"></span>
+          <a href="{{ url_for('plot_product',product_id=r.product_id) }}"
+             class="text-decoration-none">
+            {{ r.product_id }}
+          </a>
+        </td>
+        <td>{{ r.sellPrice|round(2) }}</td>
+        <td>{{ r.buyPrice|round(2) }}</td>
+        <td>{{ r.sellVolume }}</td>
+        <td>{{ r.buyVolume }}</td>
+        <td>{{ r.sellOrders }}</td>
+        <td>{{ r.buyOrders }}</td>
+        <td>{{ r.sellMovingWeek }}</td>
+        <td>{{ r.buyMovingWeek }}</td>
+        <td>{{ r.snapshot_time }}</td>
+        <td class="prediction-cell">
+          <span class="spinner-border spinner-border-sm text-secondary d-none"></span>
+          <span class="badge rounded-pill bg-secondary">…</span>
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+</div>
+{% endblock %}
 
-  <!-- JavaScript to trigger prediction requests -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const buttons = document.querySelectorAll(".predict-btn");
-      buttons.forEach(function(button) {
-        button.addEventListener("click", function() {
-          const productId = this.getAttribute("data-product");
-          const resultSpan = this.nextElementSibling;
-          resultSpan.innerHTML = "Predicting..."; // display interim message
+{% block scripts %}
+<script>
+  // Initialize DataTable with export buttons & sticky header
+  const tbl = new DataTable('#products', {
+    order: [[9, 'desc']],
+    pageLength: 25,
+    dom: 'Bfrtip',
+    buttons: ['copy', 'csv'],
+    headerCallback: thead => thead.classList.add('sticky-top','bg-dark','text-white')
+  });
 
-          // Fetch prediction from the backend endpoint
-          fetch(`/predict/${productId}`)
-            .then(response => response.json())
-            .then(data => {
-              // Format predicted sell price and confidence score
-              const prediction = parseFloat(data.predicted_sell_price).toFixed(2);
-              const confidence = parseFloat(data.confidence).toFixed(2);
-              resultSpan.innerHTML = `Price: ${prediction}, Confidence: ${confidence}%`;
-            })
-            .catch(err => {
-              console.error(err);
-              resultSpan.innerHTML = "Error fetching prediction";
-            });
+  // Fetch AI peak predictions per row
+  function refreshPeaks() {
+    $('#products tbody tr').each(function() {
+      const row   = $(this);
+      const id    = row.data('id');
+      const spin  = row.find('.spinner-border');
+      const badge = row.find('.badge');
+
+      spin.removeClass('d-none');
+      badge.addClass('d-none');
+
+      fetch(`/predict/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          spin.addClass('d-none');
+          badge.removeClass('d-none');
+
+          if (data.predicted_peak_price != null) {
+            const sell  = parseFloat(row.children().eq(1).text());
+            const peak  = parseFloat(data.predicted_peak_price).toFixed(2);
+            const delta = (peak - sell).toFixed(2);
+
+            badge.text(`${peak} (${delta})`);
+            badge
+              .removeClass('bg-secondary badge-up badge-down')
+              .addClass(delta >= 0 ? 'badge-up' : 'badge-down');
+          } else {
+            badge.text('n/a')
+                 .removeClass('badge-up badge-down')
+                 .addClass('bg-secondary');
+          }
+        })
+        .catch(() => {
+          spin.addClass('d-none');
+          badge.text('err')
+               .removeClass('badge-up badge-down')
+               .addClass('bg-secondary');
         });
-      });
     });
-  </script>
-</body>
-</html>
+  }
+
+  // Initial load + periodic updates
+  refreshPeaks();
+  setInterval(refreshPeaks, 20000);
+  setInterval(() => location.reload(), 60000);
+</script>
+{% endblock %}

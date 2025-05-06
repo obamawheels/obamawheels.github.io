@@ -1,129 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Top Price Variations</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
-  <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #343a40;
-    }
-    .btn-group {
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    table {
-      background-color: #ffffff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    th {
-      cursor: pointer;
-    }
-    th:hover {
-      background-color: #343a40;
-      color: #ffffff;
-    }
-  </style>
-</head>
-<body>
-  <div class="container mt-4">
-    <h1>Top Price Variations (Top 100)</h1>
+{% extends "base.html" %}
+{% block title %}Top Variations{% endblock %}
 
-    <!-- Filter Buttons -->
-    <div class="btn-group" role="group">
-      <a href="{{ url_for('top_variations', time_filter='minute') }}" class="btn btn-outline-primary {% if current_filter == 'minute' %}active{% endif %}">Past Minute</a>
-      <a href="{{ url_for('top_variations', time_filter='hour') }}" class="btn btn-outline-primary {% if current_filter == 'hour' %}active{% endif %}">Past Hour</a>
-      <a href="{{ url_for('top_variations', time_filter='day') }}" class="btn btn-outline-primary {% if current_filter == 'day' %}active{% endif %}">Past Day</a>
-      <a href="{{ url_for('top_variations', time_filter='week') }}" class="btn btn-outline-primary {% if current_filter == 'week' %}active{% endif %}">Past Week</a>
-      <a href="{{ url_for('top_variations', time_filter='month') }}" class="btn btn-outline-primary {% if current_filter == 'month' %}active{% endif %}">Month</a>
-      <a href="{{ url_for('top_variations', time_filter='year') }}" class="btn btn-outline-primary {% if current_filter == 'year' %}active{% endif %}">Year</a>
-      <a href="{{ url_for('top_variations', time_filter='all') }}" class="btn btn-outline-primary {% if current_filter == 'all' %}active{% endif %}">All Time</a>
-    </div>
+{% block content %}
+<h2 class="mb-3">Top Price Variations</h2>
 
-    <!-- Table -->
-    <table class="table table-striped table-hover" id="sortableTable" data-sort-order="asc">
-      <thead class="table-dark">
-        <tr>
-          <th onclick="sortTable(0)">
-            Product ID <i class="fas fa-sort"></i>
-          </th>
-          <th onclick="sortTable(1)">
-            Previous Price <i class="fas fa-sort"></i>
-          </th>
-          <th onclick="sortTable(2)">
-            Current Price <i class="fas fa-sort"></i>
-          </th>
-          <th onclick="sortTable(3)">
-            Raw Margin <i class="fas fa-sort"></i>
-          </th>
-          <th onclick="sortTable(4)">
-            % Variation <i class="fas fa-sort"></i>
-          </th>
-          <th onclick="sortTable(5)">
-            Snapshot Time <i class="fas fa-sort"></i>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for v in variations %}
-        <tr>
-          <td>
-            <a href="{{ url_for('plot_product', product_id=v.product_id) }}">{{ v.product_id }}</a>
-          </td>
-          <td>{{ v.previous_price }}</td>
-          <td>{{ v.current_price }}</td>
-          <td>{{ v.raw_margin }}</td>
-          <td>{{ v.percentage_variation|round(2) }}%</td>
-          <td>{{ v.snapshot_time }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Dashboard</a>
-  </div>
+<!-- Filters -->
+<div class="btn-group mb-3" role="group">
+  {% for k,label in {
+      'minute':'1 min','hour':'1 h','day':'24 h',
+      'week':'7 d','month':'30 d','year':'1 y','all':'All'} .items() %}
+    <a class="btn btn-outline-primary {% if current_filter==k %}active{% endif %}"
+       href="{{ url_for('top_variations',time_filter=k) }}">{{ label }}</a>
+  {% endfor %}
+</div>
 
-  <script>
-    // Track the current sorted column to toggle its sort order on consecutive clicks.
-    let currentSortColumn = -1;
-    function sortTable(columnIndex) {
-      const table = document.getElementById("sortableTable");
-      const tbody = table.tBodies[0];
-      const rows = Array.from(tbody.rows);
-      let sortOrder = "asc";
-      
-      if (currentSortColumn === columnIndex && table.getAttribute("data-sort-order") === "asc") {
-        sortOrder = "desc";
-      }
-      currentSortColumn = columnIndex;
-      
-      rows.sort((rowA, rowB) => {
-        const cellA = rowA.cells[columnIndex].innerText.trim();
-        const cellB = rowB.cells[columnIndex].innerText.trim();
-        
-        // Try to compare as numbers if possible
-        const numA = parseFloat(cellA.replace(/[^0-9.-]+/g, ""));
-        const numB = parseFloat(cellB.replace(/[^0-9.-]+/g, ""));
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortOrder === "asc" ? numA - numB : numB - numA;
-        }
-        return sortOrder === "asc" 
-          ? cellA.localeCompare(cellB) 
-          : cellB.localeCompare(cellA);
-      });
-      
-      rows.forEach((row) => tbody.appendChild(row));
-      table.setAttribute("data-sort-order", sortOrder);
-    }
-  </script>
-</body>
-</html>
+<table id="moves" class="table table-striped table-hover w-100">
+  <thead class="table-dark text-center">
+    <tr>
+      <th>ID</th><th>Prev</th><th>Curr</th><th>Δ Raw</th><th>%</th><th>Time</th>
+    </tr>
+  </thead>
+  <tbody class="align-middle text-center">
+    {% for v in variations %}
+      <tr>
+        <td><a href="{{ url_for('plot_product',product_id=v.product_id) }}">{{ v.product_id }}</a></td>
+        <td>{{ v.previous_price }}</td>
+        <td>{{ v.current_price }}</td>
+        <td>{{ v.raw_margin }}</td>
+        <td class="{% if v.percentage_variation>0 %}text-success{% else %}text-danger{% endif %}">
+          {{ v.percentage_variation|round(2) }} %
+        </td>
+        <td>{{ v.snapshot_time }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  new DataTable('#moves',{order:[[4,'desc']]});
+  // Silent auto‑refresh every 60 s
+  setInterval(()=>location.reload(),60000);
+</script>
+{% endblock %}
